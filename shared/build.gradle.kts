@@ -1,5 +1,7 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.tasks.testing.AbstractTestTask
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -46,6 +48,15 @@ kotlin {
             implementation(libs.koin.test)
             implementation(libs.turbine)
         }
+    }
+}
+
+// Sin esto, la consola de CI solo muestra "> Task :shared:xxxTest / BUILD SUCCESSFUL" sin nombres de test
+// individuales -- suficiente para confiar en el build, pero no para verificar a simple vista en el log del
+// runner que un test puntual (p.ej. el roundtrip decimal de DATA-002) corrió y pasó en el target nativo iOS.
+tasks.withType<AbstractTestTask>().configureEach {
+    testLogging {
+        events(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
     }
 }
 
