@@ -62,9 +62,61 @@ class FechaSerializersTest {
     }
 
     @Test
+    fun `LocalDateTime con segundos en cero serializa con segundos explicitos, no los omite`() {
+        // value.toString() de kotlinx-datetime emitiria "2026-09-04T06:00" -- sin ":00". Ver DATA-001.
+        val original = ConFechaHora(LocalDateTime(2026, 9, 4, 6, 0, 0))
+        val salida = json.encodeToString(ConFechaHora.serializer(), original)
+        assertEquals("""{"valor":"2026-09-04T06:00:00"}""", salida)
+    }
+
+    @Test
+    fun `LocalDateTime con fraccion de segundo serializa la fraccion`() {
+        val original = ConFechaHora(LocalDateTime(2026, 9, 4, 10, 15, 30, 123_456_000))
+        val salida = json.encodeToString(ConFechaHora.serializer(), original)
+        assertEquals("""{"valor":"2026-09-04T10:15:30.123456"}""", salida)
+    }
+
+    @Test
+    fun `LocalDateTime deserializa las tres formas al mismo valor`() {
+        val esperado = LocalDateTime(2026, 9, 4, 6, 0, 0)
+        val sinSegundos = json.decodeFromString(ConFechaHora.serializer(), """{"valor":"2026-09-04T06:00"}""")
+        val conSegundos = json.decodeFromString(ConFechaHora.serializer(), """{"valor":"2026-09-04T06:00:00"}""")
+        assertEquals(esperado, sinSegundos.valor)
+        assertEquals(esperado, conSegundos.valor)
+
+        val esperadoConFraccion = LocalDateTime(2026, 9, 4, 6, 0, 0, 123_456_000)
+        val conFraccion = json.decodeFromString(
+            ConFechaHora.serializer(),
+            """{"valor":"2026-09-04T06:00:00.123456"}""",
+        )
+        assertEquals(esperadoConFraccion, conFraccion.valor)
+    }
+
+    @Test
     fun `LocalTime parsea HH-mm-ss`() {
         val resultado = json.decodeFromString(ConHora.serializer(), """{"valor":"14:30:00"}""")
         assertEquals(LocalTime(14, 30, 0), resultado.valor)
+    }
+
+    @Test
+    fun `LocalTime con segundos en cero serializa con segundos explicitos, no los omite`() {
+        // Mismo bug que LocalDateTime: LocalTime.toString() emitiria "14:30", sin ":00".
+        val original = ConHora(LocalTime(14, 30, 0))
+        val salida = json.encodeToString(ConHora.serializer(), original)
+        assertEquals("""{"valor":"14:30:00"}""", salida)
+    }
+
+    @Test
+    fun `LocalTime deserializa las tres formas al mismo valor`() {
+        val esperado = LocalTime(14, 30, 0)
+        val sinSegundos = json.decodeFromString(ConHora.serializer(), """{"valor":"14:30"}""")
+        val conSegundos = json.decodeFromString(ConHora.serializer(), """{"valor":"14:30:00"}""")
+        assertEquals(esperado, sinSegundos.valor)
+        assertEquals(esperado, conSegundos.valor)
+
+        val esperadoConFraccion = LocalTime(14, 30, 0, 123_456_000)
+        val conFraccion = json.decodeFromString(ConHora.serializer(), """{"valor":"14:30:00.123456"}""")
+        assertEquals(esperadoConFraccion, conFraccion.valor)
     }
 
     @Test

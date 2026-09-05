@@ -103,6 +103,10 @@ class ApiClientTest {
         cliente.postLista<RegistroAcopioDTO, SyncResultResponse>(Endpoints.SYNC_REGISTROS_ACOPIO, listOf(registro))
 
         assertTrue(bodyCapturado!!.startsWith("["), "el body debe empezar con '[', no con '{': $bodyCapturado")
+        assertTrue(
+            bodyCapturado!!.contains(""""fechaHora":"2026-09-04T06:00:00""""),
+            "fechaHora con segundos en cero debe ir explicita, no omitida: $bodyCapturado",
+        )
     }
 
     @Test
