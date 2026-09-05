@@ -41,12 +41,32 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.bignum)
             implementation(libs.koin.core)
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.client.auth)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.koin.test)
             implementation(libs.turbine)
+            implementation(libs.ktor.client.mock)
+        }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+        // Los tres targets iOS comparten el mismo engine Darwin -- ver KT-* de Kotlin/Native, el source
+        // set intermedio "iosMain" ya lo crea por default el plugin KMP al declarar iosX64/iosArm64/
+        // iosSimulatorArm64 (todos "ios.main" agrupan bajo iosMain automáticamente).
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
+        jvmMain.dependencies {
+            // Motor real solo para que jvm() tenga uno disponible (MOBILE_ARCHITECTURE.md §14) -- los
+            // tests de esta fase usan MockEngine (ktor-client-mock), no CIO real.
+            implementation(libs.ktor.client.cio)
         }
     }
 }
