@@ -62,7 +62,7 @@ class FechaSerializersTest {
     }
 
     @Test
-    fun `LocalDateTime con segundos en cero serializa con segundos explicitos, no los omite`() {
+    fun `LocalDateTime con segundos en cero serializa con segundos explicitos y no los omite`() {
         // value.toString() de kotlinx-datetime emitiria "2026-09-04T06:00" -- sin ":00". Ver DATA-001.
         val original = ConFechaHora(LocalDateTime(2026, 9, 4, 6, 0, 0))
         val salida = json.encodeToString(ConFechaHora.serializer(), original)
@@ -99,7 +99,7 @@ class FechaSerializersTest {
     }
 
     @Test
-    fun `LocalTime con segundos en cero serializa con segundos explicitos, no los omite`() {
+    fun `LocalTime con segundos en cero serializa con segundos explicitos y no los omite`() {
         // Mismo bug que LocalDateTime: LocalTime.toString() emitiria "14:30", sin ":00".
         val original = ConHora(LocalTime(14, 30, 0))
         val salida = json.encodeToString(ConHora.serializer(), original)
