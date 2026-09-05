@@ -11,7 +11,12 @@ import shared
 struct IOSApp: App {
 
     init() {
-        KoinKt.initKoin(appDeclaration: { _ in })
+        // El binding de SecureTokenStorage (Keychain) es especifico de esta plataforma -- ver
+        // `security/SecureTokenStorage.kt` y `di/IosSecurityModule.kt` (Fase 3). En Android es
+        // `MainActivity.kt` quien hace el equivalente porque ahi si hace falta un Context.
+        KoinKt.initKoin(appDeclaration: { app in
+            app.modules([IosSecurityModuleKt.moduloSeguridadIos()])
+        })
     }
 
     var body: some Scene {

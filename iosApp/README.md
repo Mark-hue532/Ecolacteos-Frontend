@@ -8,7 +8,9 @@ retome esta carpeta.
 ## Qué existe ya
 
 - `iosApp/iOSApp.swift` -- `@main` de la app SwiftUI. Llama a `KoinKt.initKoin()` (equivalente Swift del
-  `initKoin()` de `shared/di/Koin.kt`) antes de montar `ContentView`.
+  `initKoin()` de `shared/di/Koin.kt`) antes de montar `ContentView`, pasándole el módulo de
+  `IosSecurityModuleKt.moduloSeguridadIos()` (Fase 3) que registra `SecureTokenStorage` sobre Keychain --
+  ver `shared/src/iosMain/kotlin/.../di/IosSecurityModule.kt`.
 - `iosApp/ContentView.swift` -- placeholder de SwiftUI puro. Compose Multiplatform para iOS no entra hasta
   la Fase 7; hasta entonces este archivo se reemplaza pantalla por pantalla.
 

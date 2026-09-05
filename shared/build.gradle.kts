@@ -68,6 +68,15 @@ kotlin {
             // tests de esta fase usan MockEngine (ktor-client-mock), no CIO real.
             implementation(libs.ktor.client.cio)
         }
+        // Test real del Keystore (PROMPT_FASE_03.md §8) -- necesita un dispositivo/emulador que el CI
+        // actual no tiene (`verificacion-android.yml` no levanta uno). Se declara y se documenta cómo
+        // correrlo a mano en el checkpoint de la Fase 3; queda sin ejecutar en CI, no se declara verificado.
+        androidInstrumentedTest.dependencies {
+            implementation(kotlin("test"))
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.androidx.test.runner)
+            implementation(libs.androidx.test.junit)
+        }
     }
 }
 
@@ -86,6 +95,9 @@ android {
 
     defaultConfig {
         minSdk = libs.versions.androidMinSdk.get().toInt()
+        // Requerido para que `androidInstrumentedTest` (Fase 3, test real de Keystore) tenga runner --
+        // sin esto `connectedAndroidTest`/`connectedDebugAndroidTest` ni se generan.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     compileOptions {

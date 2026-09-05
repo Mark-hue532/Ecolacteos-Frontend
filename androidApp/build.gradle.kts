@@ -31,4 +31,8 @@ android {
 
 dependencies {
     implementation(project(":shared"))
+    // `shared` declara koin-core como `implementation`, no `api` (CLAUDE.md §3.4 -- Koin es un detalle de
+    // implementación de `shared/`), así que no llega transitivamente. `MainActivity` necesita `module {}`
+    // para registrar el binding de `SecureTokenStorage`, específico de esta plataforma (Fase 3).
+    implementation(libs.koin.core)
 }

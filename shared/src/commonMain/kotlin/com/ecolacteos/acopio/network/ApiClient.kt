@@ -70,6 +70,19 @@ internal suspend inline fun <reified T> ResultadoLlamada.aApiResult(): ApiResult
 }
 
 /**
+ * Avisa a [ApiClient.sesionInvalidadaNotifier] cuando el error clasificado es un 401 (`PROMPT_FASE_03.md
+ * §7`): "al recibir un 401, limpiar la sesión". No es `inline` -- no necesita `reified`, y así no hace
+ * falta repetir esta lógica en cada una de las tres funciones de [ApiClient].
+ */
+@PublishedApi
+internal suspend fun <T> ApiClient.notificarSiNoAutorizado(resultado: ApiResult<T>): ApiResult<T> {
+    if (resultado is ApiResult.Error && resultado.error is ApiError.NoAutorizado) {
+        sesionInvalidadaNotifier.emitir()
+    }
+    return resultado
+}
+
+/**
  * Capa genérica sobre [HttpClient] que la app usa para hablar con el backend (`PROMPT_FASE_02.md §3-5`).
  * Nunca deja escapar una excepción de Ktor: todo lo que sale de acá es [ApiResult] (`CLAUDE.md §3.4` --
  * la UI y los UseCases no ven `HttpClient` ni sus excepciones).
@@ -80,27 +93,45 @@ internal suspend inline fun <reified T> ResultadoLlamada.aApiResult(): ApiResult
 class ApiClient(
     @PublishedApi internal val httpClient: HttpClient,
     @PublishedApi internal val apiConfig: ApiConfig,
+    @PublishedApi internal val sesionInvalidadaNotifier: SesionInvalidadaNotifier = SesionInvalidadaNotifier(),
 ) {
     /** `GET` simple, con query params opcionales. */
     suspend inline fun <reified T> get(
         path: String,
         queryParams: Map<String, String> = emptyMap(),
-    ): ApiResult<T> = ejecutarLlamadaHttp {
-        httpClient.get(apiConfig.baseUrl + path) {
-            queryParams.forEach { (nombre, valor) -> parameter(nombre, valor) }
-        }
-    }.aApiResult()
+    ): ApiResult<T> = notificarSiNoAutorizado(
+        ejecutarLlamadaHttp {
+            httpClient.get(apiConfig.baseUrl + path) {
+                queryParams.forEach { (nombre, valor) -> parameter(nombre, valor) }
+            }
+        }.aApiResult(),
+    )
 
     /** `POST` con un body de objeto único. */
     suspend inline fun <reified TReq, reified TRes> post(
         path: String,
         body: TReq,
-    ): ApiResult<TRes> = ejecutarLlamadaHttp {
-        httpClient.post(apiConfig.baseUrl + path) {
-            contentType(ContentType.Application.Json)
-            setBody(body)
-        }
-    }.aApiResult()
+    ): ApiResult<TRes> = notificarSiNoAutorizado(
+        ejecutarLlamadaHttp {
+            httpClient.post(apiConfig.baseUrl + path) {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }.aApiResult(),
+    )
+
+    /**
+     * `POST` sin body -- hoy solo lo usa `/api/auth/refresh` (`MOBILE_ARCHITECTURE.md §4`): la
+     * autenticación va entera en el header `Authorization`, no existe un request body que mandar. Separada
+     * de [post] en vez de llamarla con `Unit` para no depender de que kotlinx.serialization resuelva un
+     * serializer implícito para `Unit` -- explícito es más auditable que implícito para el único endpoint
+     * de autenticación que queda.
+     */
+    suspend inline fun <reified TRes> postSinBody(path: String): ApiResult<TRes> = notificarSiNoAutorizado(
+        ejecutarLlamadaHttp {
+            httpClient.post(apiConfig.baseUrl + path)
+        }.aApiResult(),
+    )
 
     /**
      * `POST` cuyo body es un **array JSON crudo**, no un objeto envolvente -- los 4 endpoints
@@ -110,10 +141,12 @@ class ApiClient(
     suspend inline fun <reified TReq, reified TRes> postLista(
         path: String,
         lista: List<TReq>,
-    ): ApiResult<TRes> = ejecutarLlamadaHttp {
-        httpClient.post(apiConfig.baseUrl + path) {
-            contentType(ContentType.Application.Json)
-            setBody(lista)
-        }
-    }.aApiResult()
+    ): ApiResult<TRes> = notificarSiNoAutorizado(
+        ejecutarLlamadaHttp {
+            httpClient.post(apiConfig.baseUrl + path) {
+                contentType(ContentType.Application.Json)
+                setBody(lista)
+            }
+        }.aApiResult(),
+    )
 }

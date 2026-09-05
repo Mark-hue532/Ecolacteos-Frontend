@@ -1,8 +1,13 @@
 package com.ecolacteos.acopio.di
 
 import com.ecolacteos.acopio.core.DispatcherProvider
+import com.ecolacteos.acopio.domain.GestorSesion
+import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesion
+import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesionFake
+import com.ecolacteos.acopio.network.TokenProvider
 import org.koin.core.context.stopKoin
 import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.check.checkModules
 import org.koin.test.inject
@@ -42,5 +47,34 @@ class CoreModuleTest : KoinTest {
         initKoin()
         val dispatcherProvider by inject<DispatcherProvider>()
         assertNotNull(dispatcherProvider)
+    }
+
+    /**
+     * `securityModule` (Fase 3) no declara el binding de `AlmacenamientoSeguroDeSesion` -- cada plataforma
+     * lo hace en el suyo (`androidApp/MainActivity.kt`, `di/IosSecurityModule.kt`), ver el comentario en
+     * `SecurityModule.kt`. Acá se lo damos con un fake -- lo mismo que hace `GestorSesionTest`, apto para
+     * JVM -- para poder correr `checkModules()` sobre el grafo completo (criterio de aceptación §7).
+     */
+    @Test
+    fun `el grafo completo -- core + network + security -- se resuelve con un almacenamiento fake`() {
+        koinApplication {
+            modules(
+                coreModule,
+                networkModule,
+                securityModule,
+                module { single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() } },
+            )
+        }.checkModules()
+    }
+
+    @Test
+    fun `initKoin con el almacenamiento fake deja GestorSesion y TokenProvider inyectables`() {
+        initKoin {
+            modules(module { single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() } })
+        }
+        val gestorSesion by inject<GestorSesion>()
+        val tokenProvider by inject<TokenProvider>()
+        assertNotNull(gestorSesion)
+        assertNotNull(tokenProvider)
     }
 }

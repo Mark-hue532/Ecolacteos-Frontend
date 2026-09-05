@@ -26,7 +26,7 @@ fun initKoin(appDeclaration: KoinAppDeclaration = {}) {
     try {
         startKoin {
             appDeclaration()
-            modules(coreModule, networkModule)
+            modules(coreModule, networkModule, securityModule)
         }
     } catch (yaIniciado: KoinApplicationAlreadyStartedException) {
         // No-op: el grafo ya existe en este proceso, no hay nada que rehacer.
