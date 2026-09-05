@@ -188,10 +188,11 @@ decidida y aprobada antes de cerrar la Fase 2.
 | Tema | Estado | Dónde impacta |
 |---|---|---|
 | Timezone de la JVM del servidor (`DATA-001`) | **Abierto** — esperando a DevOps | Bloquea el cierre de la Fase 2. Mitigación: tratar todo `LocalDateTime` como hora de pared |
-| `androidx.security-crypto` (`EncryptedSharedPreferences`) está **deprecado** por Google | **Abierto** — la arquitectura §4 aún lo menciona | Fase 3. Hay que elegir reemplazo (Keystore directo o fork mantenido) y actualizar el documento |
+| `androidx.security-crypto` (`EncryptedSharedPreferences`) está **deprecado** por Google | **Resuelto en Fase 3** — Android implementado con AES/256/GCM directo sobre `AndroidKeyStore` (`SecureTokenStorage.android.kt`). Falta solo corregir la mención a `EncryptedSharedPreferences` en `MOBILE_ARCHITECTURE.md` §4 (línea ~216) y §13 (línea ~735) | Documentación pendiente de editar aparte |
 | Límite de items por lote en `/api/sync/*` | Sin evidencia de límite server-side | Fase 5. Trocear defensivamente (50–100) por decisión propia del cliente |
 | `/v3/api-docs` real nunca capturado | Recomendado verificar levantando el backend | Doble chequeo antes de Fase 2 |
 | Evidencia fotográfica | **Diferida a v2** por decisión de producto | No implementar captura de foto en v1 |
+| Roundtrip real de Keychain en CI (`SecureTokenStorageIosTest`, iOS) | **Abierto, aceptado a propósito en el checkpoint de Fase 3** — los 4 tests están en `@Ignore`. `SecItemAdd`/`SecItemUpdate` fallaron en `iosSimulatorArm64Test` en 3 intentos (runs #7, #8, #11 de `verificacion-ios.yml`); la causa raíz nunca se identificó, el `@Ignore` (commit `0e2c148`) solo puso el CI en verde. El criterio de aceptación #2 de `PROMPT_FASE_03.md` sigue sin cumplirse de fondo | Bloquea la confianza real en persistencia de sesión en iOS. Retomar cuando alguien tenga acceso a los logs del runner o a un Mac para reproducir |
 
 ---
 
