@@ -119,8 +119,8 @@ actual class SecureTokenStorage : AlmacenamientoSeguroDeSesion {
 
     private fun queryBaseMutable(): NSMutableDictionary = NSMutableDictionary().apply {
         setObject(kSecClassGenericPassword.comoNSString(), forKey = kSecClass.comoNSString())
-        setObject(SERVICE, forKey = kSecAttrService.comoNSString())
-        setObject(ACCOUNT, forKey = kSecAttrAccount.comoNSString())
+        setObject(SERVICE.comoNSString(), forKey = kSecAttrService.comoNSString())
+        setObject(ACCOUNT.comoNSString(), forKey = kSecAttrAccount.comoNSString())
     }
 }
 
@@ -152,6 +152,9 @@ private fun NSDictionary.asCFDictionary(): CFDictionaryRef = interpretCPointer(t
 @OptIn(kotlinx.cinterop.BetaInteropApi::class)
 private fun nsDataDesdeTexto(texto: String): NSData =
     NSString.create(string = texto).dataUsingEncoding(NSUTF8StringEncoding)!!
+
+@OptIn(kotlinx.cinterop.BetaInteropApi::class)
+private fun String.comoNSString(): NSString = NSString.create(string = this)
 
 @OptIn(kotlinx.cinterop.BetaInteropApi::class)
 private fun textoDesdeNsData(data: NSData): String? =
