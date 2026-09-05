@@ -1,0 +1,23 @@
+import com.ecolacteos.acopio.core.Decimal;
+import com.ecolacteos.acopio.data.remote.dto.CicloCapital;
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2. Dropdown de LoteProduccion/Venta.
+CREATE TABLE tipo_queso_cache (
+  id                          TEXT NOT NULL PRIMARY KEY,
+  nombre                      TEXT NOT NULL,
+  rendimiento_esperado_pct    TEXT AS Decimal NOT NULL,
+  ciclo_capital               TEXT AS CicloCapital NOT NULL,
+  activo                      INTEGER AS kotlin.Boolean NOT NULL,
+  actualizado_en              TEXT AS LocalDateTime NOT NULL
+);
+
+deleteAll:
+DELETE FROM tipo_queso_cache;
+
+insert:
+INSERT INTO tipo_queso_cache (id, nombre, rendimiento_esperado_pct, ciclo_capital, activo, actualizado_en)
+VALUES (:id, :nombre, :rendimientoEsperadoPct, :cicloCapital, :activo, :actualizadoEn);
+
+selectAll:
+SELECT * FROM tipo_queso_cache ORDER BY nombre ASC;

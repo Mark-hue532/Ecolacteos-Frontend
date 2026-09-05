@@ -1,0 +1,15 @@
+-- MOBILE_ARCHITECTURE.md §11.2. Tabla hija de comunicado_cache -- compone Comunicado.zonasNombres.
+CREATE TABLE comunicado_zona_cache (
+  comunicado_id  TEXT NOT NULL,
+  zona_nombre    TEXT NOT NULL,
+  PRIMARY KEY (comunicado_id, zona_nombre)
+);
+
+deleteAll:
+DELETE FROM comunicado_zona_cache;
+
+insert:
+INSERT INTO comunicado_zona_cache (comunicado_id, zona_nombre) VALUES (:comunicadoId, :zonaNombre);
+
+obtenerPorComunicado:
+SELECT zona_nombre FROM comunicado_zona_cache WHERE comunicado_id = :comunicadoId;

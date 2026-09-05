@@ -1,0 +1,32 @@
+-- MOBILE_ARCHITECTURE.md §11.1. N:M local, espejo de lote_registro_acopio. Sin sync_status propio a
+-- propósito (trampa #3 de PROMPT_FASE_04.md): sincroniza junto con su fila padre en lote_produccion_local.
+--
+-- NOTA (Problemas encontrados, ver checkpoint): §11.1 declara
+-- "PRIMARY KEY (lote_uuid_cliente, COALESCE(registro_acopio_uuid_cliente, registro_acopio_server_id))",
+-- que no es SQL válido de SQLite -- un PRIMARY KEY declarativo no admite una expresión como columna.
+-- Se traduce a un UNIQUE INDEX sobre esa misma expresión (soportado desde SQLite 3.9, "expression
+-- indexes"), que preserva exactamente la unicidad pretendida: un mismo registro de acopio (propio o
+-- ajeno) no puede entrar dos veces al mismo lote.
+CREATE TABLE lote_produccion_registro_local (
+  lote_uuid_cliente            TEXT NOT NULL,
+  registro_acopio_uuid_cliente TEXT,
+  registro_acopio_server_id    TEXT,
+  CHECK ((registro_acopio_uuid_cliente IS NULL) <> (registro_acopio_server_id IS NULL))
+);
+
+CREATE UNIQUE INDEX ux_lote_produccion_registro_local
+  ON lote_produccion_registro_local (
+    lote_uuid_cliente,
+    COALESCE(registro_acopio_uuid_cliente, registro_acopio_server_id)
+  );
+
+insertar:
+INSERT INTO lote_produccion_registro_local (
+  lote_uuid_cliente, registro_acopio_uuid_cliente, registro_acopio_server_id
+) VALUES (:loteUuidCliente, :registroAcopioUuidCliente, :registroAcopioServerId);
+
+obtenerPorLote:
+SELECT * FROM lote_produccion_registro_local WHERE lote_uuid_cliente = :loteUuidCliente;
+
+eliminarPorLote:
+DELETE FROM lote_produccion_registro_local WHERE lote_uuid_cliente = :loteUuidCliente;

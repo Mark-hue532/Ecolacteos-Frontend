@@ -1,0 +1,25 @@
+import kotlinx.datetime.LocalDateTime;
+import kotlinx.datetime.LocalTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2, excepción #2 (C-04): NO viaja en /sync/cambios, se descarga bajo demanda
+-- por GET /zonas/{zonaId}/ruta. Su "reemplazo" está acotado a una zona (borrar esa zona, insertar las
+-- nuevas filas), nunca un DELETE de la tabla entera -- trampa distinta de las 8 tablas "simples".
+CREATE TABLE ruta_zona_cache (
+  zona_id           TEXT NOT NULL,
+  proveedor_id      TEXT NOT NULL,
+  proveedor_nombre  TEXT NOT NULL,
+  orden             INTEGER AS kotlin.Int NOT NULL,
+  hora_estimada     TEXT AS LocalTime,
+  actualizado_en    TEXT AS LocalDateTime NOT NULL,
+  PRIMARY KEY (zona_id, proveedor_id)
+);
+
+eliminarPorZona:
+DELETE FROM ruta_zona_cache WHERE zona_id = :zonaId;
+
+insert:
+INSERT INTO ruta_zona_cache (zona_id, proveedor_id, proveedor_nombre, orden, hora_estimada, actualizado_en)
+VALUES (:zonaId, :proveedorId, :proveedorNombre, :orden, :horaEstimada, :actualizadoEn);
+
+obtenerPorZona:
+SELECT * FROM ruta_zona_cache WHERE zona_id = :zonaId ORDER BY orden ASC;

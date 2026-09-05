@@ -1,0 +1,23 @@
+import com.ecolacteos.acopio.core.Decimal;
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2. Dropdown de RegistroAcopio/RecepcionPlanta.
+CREATE TABLE unidad_cache (
+  id                  TEXT NOT NULL PRIMARY KEY,
+  placa               TEXT NOT NULL,
+  capacidad_ton       TEXT AS Decimal,
+  zona_id             TEXT,
+  responsable_id      TEXT NOT NULL,
+  responsable_nombre  TEXT NOT NULL,
+  actualizado_en      TEXT AS LocalDateTime NOT NULL
+);
+
+deleteAll:
+DELETE FROM unidad_cache;
+
+insert:
+INSERT INTO unidad_cache (id, placa, capacidad_ton, zona_id, responsable_id, responsable_nombre, actualizado_en)
+VALUES (:id, :placa, :capacidadTon, :zonaId, :responsableId, :responsableNombre, :actualizadoEn);
+
+selectAll:
+SELECT * FROM unidad_cache ORDER BY placa ASC;

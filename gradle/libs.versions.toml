@@ -37,6 +37,14 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
 ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor" }
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
+sqldelight-coroutines-extensions = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-android-driver = { module = "app.cash.sqldelight:android-driver", version.ref = "sqldelight" }
+sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
+# JDBC -- solo para tests en memoria (jvmTest/androidUnitTest), nunca implementation de un target real
+# (CLAUDE.md §4, `PROMPT_FASE_04.md §1`, trampa #7): un driver JDBC empaquetado en el APK/IPA es peso
+# muerto y en Android puede chocar con `sqldelight-android-driver`.
+sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -46,3 +54,4 @@ androidApplication = { id = "com.android.application", version.ref = "agp" }
 # Mismo Kotlin Gradle Plugin ya fijado arriba (2.4.10) -- id de plugin para el módulo Android hoja
 # `androidApp`, necesario porque el proyecto corre con `android.builtInKotlin=false` (ver gradle.properties).
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }

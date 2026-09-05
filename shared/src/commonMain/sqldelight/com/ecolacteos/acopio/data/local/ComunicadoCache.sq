@@ -1,0 +1,20 @@
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2. ⚠️ fecha es LocalDateTime, no LocalDate, pese al nombre engañoso
+-- (MOBILE_DATA_MAPPING.md §5.6) -- igual que ComunicadoResponse.fecha del lado del DTO (Fase 2).
+CREATE TABLE comunicado_cache (
+  id              TEXT NOT NULL PRIMARY KEY,
+  mensaje         TEXT NOT NULL,
+  fecha           TEXT AS LocalDateTime NOT NULL,
+  actualizado_en  TEXT AS LocalDateTime NOT NULL
+);
+
+deleteAll:
+DELETE FROM comunicado_cache;
+
+insert:
+INSERT INTO comunicado_cache (id, mensaje, fecha, actualizado_en)
+VALUES (:id, :mensaje, :fecha, :actualizadoEn);
+
+selectAll:
+SELECT * FROM comunicado_cache ORDER BY fecha DESC;

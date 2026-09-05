@@ -1,0 +1,18 @@
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2. Dropdown de RegistroAcopio.
+CREATE TABLE motivo_observacion_cache (
+  id              TEXT NOT NULL PRIMARY KEY,
+  descripcion     TEXT NOT NULL,
+  actualizado_en  TEXT AS LocalDateTime NOT NULL
+);
+
+deleteAll:
+DELETE FROM motivo_observacion_cache;
+
+insert:
+INSERT INTO motivo_observacion_cache (id, descripcion, actualizado_en)
+VALUES (:id, :descripcion, :actualizadoEn);
+
+selectAll:
+SELECT * FROM motivo_observacion_cache ORDER BY descripcion ASC;

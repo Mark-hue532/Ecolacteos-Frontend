@@ -1,0 +1,21 @@
+import com.ecolacteos.acopio.core.Decimal;
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2. Fila única -- NULLABLE a propósito: /sync/cambios devuelve null si no hay
+-- precio vigente configurado (DATA: .orElse(null)). Sigue el mismo patrón DELETE+INSERT que las otras 7
+-- (no es una de las 2 excepciones de C-04) -- "no hay fila" solo puede pasar antes del primer sync exitoso.
+CREATE TABLE precio_litro_vigente_cache (
+  id              INTEGER NOT NULL PRIMARY KEY,
+  precio          TEXT AS Decimal,
+  actualizado_en  TEXT AS LocalDateTime NOT NULL,
+  CHECK (id = 1)
+);
+
+deleteAll:
+DELETE FROM precio_litro_vigente_cache;
+
+insert:
+INSERT INTO precio_litro_vigente_cache (id, precio, actualizado_en) VALUES (1, :precio, :actualizadoEn);
+
+obtener:
+SELECT * FROM precio_litro_vigente_cache WHERE id = 1;

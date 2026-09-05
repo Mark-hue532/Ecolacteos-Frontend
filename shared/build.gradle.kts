@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -46,6 +47,12 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.client.auth)
+            // El plugin de SQLDelight ya agrega `runtime` automáticamente a commonMain -- se declara acá
+            // de todos modos por explicitud (mismo criterio que las demás líneas de este bloque). Flow
+            // reactivo de `observarTodos(...)` (Query.asFlow()/mapToList) necesita el artefacto aparte
+            // `coroutines-extensions`, que el plugin no agrega solo.
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.sqldelight.coroutines.extensions)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -56,17 +63,26 @@ kotlin {
         }
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.sqldelight.android.driver)
         }
         // Los tres targets iOS comparten el mismo engine Darwin -- ver KT-* de Kotlin/Native, el source
         // set intermedio "iosMain" ya lo crea por default el plugin KMP al declarar iosX64/iosArm64/
         // iosSimulatorArm64 (todos "ios.main" agrupan bajo iosMain automáticamente).
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
+            implementation(libs.sqldelight.native.driver)
         }
         jvmMain.dependencies {
             // Motor real solo para que jvm() tenga uno disponible (MOBILE_ARCHITECTURE.md §14) -- los
             // tests de esta fase usan MockEngine (ktor-client-mock), no CIO real.
             implementation(libs.ktor.client.cio)
+            // Driver JDBC en memoria solo para que el `actual AcopioDriverFactory` de este target compile
+            // y `:shared:jvmTest` corra sin emulador/simulador -- nunca se empaqueta en producción, ver
+            // `AcopioDriverFactory.jvm.kt` (mismo criterio que `SecureTokenStorage.jvm.kt` de Fase 3).
+            implementation(libs.sqldelight.sqlite.driver)
+        }
+        jvmTest.dependencies {
+            implementation(libs.sqldelight.sqlite.driver)
         }
         // Test real del Keystore (PROMPT_FASE_03.md §8) -- necesita un dispositivo/emulador que el CI
         // actual no tiene (`verificacion-android.yml` no levanta uno). Se declara y se documenta cómo
@@ -76,6 +92,14 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.androidx.test.runner)
             implementation(libs.androidx.test.junit)
+        }
+        // Unit test JVM-based de Android (sin emulador, `verificacion-android.yml`) -- corre el mismo
+        // `commonTest` de esta fase (`PROMPT_FASE_04.md §7`). JDBC en memoria, igual que jvmTest: un
+        // `androidUnitTest` corre sobre el JVM del host, sin `Context` real, así que no puede usar
+        // `AndroidSqliteDriver` (ese sí necesita un dispositivo/emulador -- fuera de alcance, ver
+        // "No es criterio de esta fase" del prompt).
+        androidUnitTest.dependencies {
+            implementation(libs.sqldelight.sqlite.driver)
         }
     }
 }
@@ -103,5 +127,16 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+// PROMPT_FASE_04.md §1: los .sq viven en un source set propio, no en kotlin/. `packageName` fija la ruta
+// exacta -- shared/src/commonMain/sqldelight/com/ecolacteos/acopio/data/local/*.sq (un directorio por
+// segmento del package, como en cualquier fuente Kotlin/Java). Clase generada: `AcopioDatabase`.
+sqldelight {
+    databases {
+        create("AcopioDatabase") {
+            packageName.set("com.ecolacteos.acopio.data.local")
+        }
     }
 }

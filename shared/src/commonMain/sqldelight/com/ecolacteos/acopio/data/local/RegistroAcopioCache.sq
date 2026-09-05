@@ -1,0 +1,48 @@
+import com.ecolacteos.acopio.core.Decimal;
+import com.ecolacteos.acopio.domain.model.Origen;
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2, excepción #1 (C-02/C-04). Registros de acopio AJENOS, capturados por otro
+-- dispositivo. Solo lectura, nunca se crea ni edita localmente. NUNCA se borra en masa en un ciclo de
+-- catálogos (trampa #4 de PROMPT_FASE_04.md): borrarla dejaría sin forma de resolver server_id a
+-- analisis_calidad_local/lote_produccion_registro_local con un padre ajeno todavía no sincronizado.
+CREATE TABLE registro_acopio_cache (
+  id                 TEXT NOT NULL PRIMARY KEY,
+  uuid_cliente       TEXT,
+  proveedor_id       TEXT,
+  proveedor_nombre   TEXT,
+  fecha_hora         TEXT AS LocalDateTime NOT NULL,
+  litros             TEXT AS Decimal NOT NULL,
+  tiene_observacion  INTEGER AS kotlin.Boolean,
+  origen             TEXT AS Origen NOT NULL,
+  actualizado_en     TEXT AS LocalDateTime NOT NULL
+);
+
+upsert:
+INSERT OR REPLACE INTO registro_acopio_cache (
+  id, uuid_cliente, proveedor_id, proveedor_nombre, fecha_hora, litros, tiene_observacion, origen,
+  actualizado_en
+) VALUES (
+  :id, :uuidCliente, :proveedorId, :proveedorNombre, :fechaHora, :litros, :tieneObservacion, :origen,
+  :actualizadoEn
+);
+
+obtenerPorServerId:
+SELECT * FROM registro_acopio_cache WHERE id = :id;
+
+-- Retención C-04 (MOBILE_ARCHITECTURE.md §11.4, Fase 9 -- se escribe la query, nadie la llama todavía):
+-- 30 días desde actualizado_en, SALVO las filas referenciadas por un hijo local que no esté SYNCED todavía
+-- (lote_produccion_registro_local no tiene sync_status propio: hereda el de su lote_produccion_local padre).
+eliminarAntesDeSalvoReferenciados:
+DELETE FROM registro_acopio_cache
+WHERE actualizado_en < :fecha
+  AND id NOT IN (
+    SELECT registro_acopio_server_id FROM analisis_calidad_local
+    WHERE registro_acopio_server_id IS NOT NULL AND sync_status <> 'SYNCED'
+  )
+  AND id NOT IN (
+    SELECT lprl.registro_acopio_server_id
+    FROM lote_produccion_registro_local lprl
+    INNER JOIN lote_produccion_local lpl ON lpl.uuid_cliente = lprl.lote_uuid_cliente
+    WHERE lprl.registro_acopio_server_id IS NOT NULL AND lpl.sync_status <> 'SYNCED'
+  );

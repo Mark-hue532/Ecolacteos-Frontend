@@ -552,7 +552,13 @@ lote_produccion_registro_local           -- N:M local, espejo de lote_registro_a
   registro_acopio_uuid_cliente   TEXT NULL
   registro_acopio_server_id      TEXT NULL
   CHECK ((registro_acopio_uuid_cliente IS NULL) <> (registro_acopio_server_id IS NULL))
-  PRIMARY KEY (lote_uuid_cliente, COALESCE(registro_acopio_uuid_cliente, registro_acopio_server_id))
+  -- Corregido en Fase 4 (esta tabla no tiene PRIMARY KEY propia, usa el rowid implícito de SQLite): un
+  -- PRIMARY KEY declarativo no admite una expresión como columna -- COALESCE(...) ahí no es SQL válido de
+  -- SQLite. La Rev. 2 de este documento lo declaraba así; la unicidad pretendida (un mismo registro de
+  -- acopio, propio o ajeno, no puede entrar dos veces al mismo lote) se logra en cambio con un índice de
+  -- expresión (soportado desde SQLite 3.9), fuera de la CREATE TABLE:
+  CREATE UNIQUE INDEX ux_lote_produccion_registro_local ON lote_produccion_registro_local
+    (lote_uuid_cliente, COALESCE(registro_acopio_uuid_cliente, registro_acopio_server_id))
 
 venta_local
   uuid_cliente          TEXT PRIMARY KEY

@@ -1,0 +1,66 @@
+import com.ecolacteos.acopio.core.Decimal;
+import com.ecolacteos.acopio.domain.model.SyncStatus;
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.1. CHECK C-02: exactamente una de las dos referencias al padre es no-nula.
+CREATE TABLE analisis_calidad_local (
+  uuid_cliente                 TEXT NOT NULL PRIMARY KEY,
+  server_id                    TEXT,
+  usuario_id                   TEXT NOT NULL,
+  registro_acopio_uuid_cliente TEXT,
+  registro_acopio_server_id    TEXT,
+  folio_muestra                TEXT NOT NULL,
+  agua                         TEXT AS Decimal,
+  proteina                     TEXT AS Decimal,
+  lactosa                      TEXT AS Decimal,
+  densidad                     TEXT AS Decimal,
+  temperatura                  TEXT AS Decimal,
+  ph                           TEXT AS Decimal,
+  agua_anadida                 INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+  sync_status                  TEXT AS SyncStatus NOT NULL,
+  sync_attempts                INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
+  sync_error                   TEXT,
+  next_attempt_at              TEXT AS LocalDateTime,
+  creado_en                    TEXT AS LocalDateTime NOT NULL,
+  sincronizado_en              TEXT AS LocalDateTime,
+  CHECK ((registro_acopio_uuid_cliente IS NULL) <> (registro_acopio_server_id IS NULL))
+);
+
+insertar:
+INSERT INTO analisis_calidad_local (
+  uuid_cliente, server_id, usuario_id, registro_acopio_uuid_cliente, registro_acopio_server_id,
+  folio_muestra, agua, proteina, lactosa, densidad, temperatura, ph, agua_anadida, sync_status,
+  sync_attempts, sync_error, next_attempt_at, creado_en, sincronizado_en
+) VALUES (
+  :uuidCliente, :serverId, :usuarioId, :registroAcopioUuidCliente, :registroAcopioServerId,
+  :folioMuestra, :agua, :proteina, :lactosa, :densidad, :temperatura, :ph, :aguaAnadida, :syncStatus,
+  :syncAttempts, :syncError, :nextAttemptAt, :creadoEn, :sincronizadoEn
+);
+
+obtenerPorUuidCliente:
+SELECT * FROM analisis_calidad_local WHERE uuid_cliente = :uuidCliente;
+
+obtenerPendientes:
+SELECT * FROM analisis_calidad_local
+WHERE usuario_id = :usuarioId
+  AND sync_status IN ('PENDING', 'PENDING_DEPENDENCY', 'FAILED')
+  AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora)
+ORDER BY creado_en ASC;
+
+observarTodos:
+SELECT * FROM analisis_calidad_local WHERE usuario_id = :usuarioId ORDER BY creado_en DESC;
+
+actualizarEstadoSync:
+UPDATE analisis_calidad_local
+SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :syncError,
+    next_attempt_at = :nextAttemptAt
+WHERE uuid_cliente = :uuidCliente;
+
+actualizarServerId:
+UPDATE analisis_calidad_local
+SET server_id = :serverId, sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
+    sync_attempts = 0, sync_error = NULL, next_attempt_at = NULL
+WHERE uuid_cliente = :uuidCliente;
+
+eliminarSincronizadosAntesDe:
+DELETE FROM analisis_calidad_local WHERE sync_status = 'SYNCED' AND sincronizado_en < :fecha;

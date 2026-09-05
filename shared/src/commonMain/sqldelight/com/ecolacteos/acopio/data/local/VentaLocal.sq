@@ -1,0 +1,60 @@
+import com.ecolacteos.acopio.core.Decimal;
+import com.ecolacteos.acopio.data.remote.dto.TipoClienteVenta;
+import com.ecolacteos.acopio.domain.model.SyncStatus;
+import kotlinx.datetime.LocalDate;
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.1. Sin dependencias externas -- nunca usa PENDING_DEPENDENCY.
+CREATE TABLE venta_local (
+  uuid_cliente      TEXT NOT NULL PRIMARY KEY,
+  server_id         TEXT,
+  usuario_id        TEXT NOT NULL,
+  fecha             TEXT AS LocalDate NOT NULL,
+  tipo_cliente      TEXT AS TipoClienteVenta NOT NULL,
+  tipo_queso_id     TEXT NOT NULL,
+  cantidad          INTEGER AS kotlin.Int NOT NULL,
+  precio_unitario   TEXT AS Decimal NOT NULL,
+  sync_status       TEXT AS SyncStatus NOT NULL,
+  sync_attempts     INTEGER AS kotlin.Int NOT NULL DEFAULT 0,
+  sync_error        TEXT,
+  next_attempt_at   TEXT AS LocalDateTime,
+  creado_en         TEXT AS LocalDateTime NOT NULL,
+  sincronizado_en   TEXT AS LocalDateTime
+);
+
+insertar:
+INSERT INTO venta_local (
+  uuid_cliente, server_id, usuario_id, fecha, tipo_cliente, tipo_queso_id, cantidad, precio_unitario,
+  sync_status, sync_attempts, sync_error, next_attempt_at, creado_en, sincronizado_en
+) VALUES (
+  :uuidCliente, :serverId, :usuarioId, :fecha, :tipoCliente, :tipoQuesoId, :cantidad, :precioUnitario,
+  :syncStatus, :syncAttempts, :syncError, :nextAttemptAt, :creadoEn, :sincronizadoEn
+);
+
+obtenerPorUuidCliente:
+SELECT * FROM venta_local WHERE uuid_cliente = :uuidCliente;
+
+obtenerPendientes:
+SELECT * FROM venta_local
+WHERE usuario_id = :usuarioId
+  AND sync_status IN ('PENDING', 'FAILED')
+  AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora)
+ORDER BY creado_en ASC;
+
+observarTodos:
+SELECT * FROM venta_local WHERE usuario_id = :usuarioId ORDER BY fecha DESC;
+
+actualizarEstadoSync:
+UPDATE venta_local
+SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :syncError,
+    next_attempt_at = :nextAttemptAt
+WHERE uuid_cliente = :uuidCliente;
+
+actualizarServerId:
+UPDATE venta_local
+SET server_id = :serverId, sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
+    sync_attempts = 0, sync_error = NULL, next_attempt_at = NULL
+WHERE uuid_cliente = :uuidCliente;
+
+eliminarSincronizadosAntesDe:
+DELETE FROM venta_local WHERE sync_status = 'SYNCED' AND sincronizado_en < :fecha;

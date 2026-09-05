@@ -1,0 +1,22 @@
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2. Se reemplaza completa en cada /sync/cambios exitoso (deleteAll + insert,
+-- una sola transacción -- la orquesta CatalogosLocalDataSource, no este archivo).
+CREATE TABLE proveedor_cache (
+  id                  TEXT NOT NULL PRIMARY KEY,
+  nombre              TEXT NOT NULL,
+  zona_actual_id      TEXT,
+  zona_actual_nombre  TEXT,
+  codigo_qr           TEXT,
+  actualizado_en      TEXT AS LocalDateTime NOT NULL
+);
+
+deleteAll:
+DELETE FROM proveedor_cache;
+
+insert:
+INSERT INTO proveedor_cache (id, nombre, zona_actual_id, zona_actual_nombre, codigo_qr, actualizado_en)
+VALUES (:id, :nombre, :zonaActualId, :zonaActualNombre, :codigoQr, :actualizadoEn);
+
+selectAll:
+SELECT * FROM proveedor_cache ORDER BY nombre ASC;

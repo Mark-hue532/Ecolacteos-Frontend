@@ -1,0 +1,24 @@
+import com.ecolacteos.acopio.core.Decimal;
+import kotlinx.datetime.LocalDate;
+import kotlinx.datetime.LocalDateTime;
+
+-- MOBILE_ARCHITECTURE.md §11.2. Solo lectura. Los 3 campos que no son PK/actualizado_en son NOT NULL --
+-- mismo tipo y nullability que PrediccionProveedorResponse (Fase 2), que no los declara opcionales.
+CREATE TABLE prediccion_proveedor_cache (
+  proveedor_id            TEXT NOT NULL PRIMARY KEY,
+  fecha_prevista          TEXT AS LocalDate NOT NULL,
+  litros_estimados_min    TEXT AS Decimal NOT NULL,
+  litros_estimados_max    TEXT AS Decimal NOT NULL,
+  actualizado_en          TEXT AS LocalDateTime NOT NULL
+);
+
+deleteAll:
+DELETE FROM prediccion_proveedor_cache;
+
+insert:
+INSERT INTO prediccion_proveedor_cache (
+  proveedor_id, fecha_prevista, litros_estimados_min, litros_estimados_max, actualizado_en
+) VALUES (:proveedorId, :fechaPrevista, :litrosEstimadosMin, :litrosEstimadosMax, :actualizadoEn);
+
+selectAll:
+SELECT * FROM prediccion_proveedor_cache ORDER BY fecha_prevista ASC;
