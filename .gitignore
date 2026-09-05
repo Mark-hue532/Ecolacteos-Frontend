@@ -1,0 +1,22 @@
+.gradle/
+build/
+*/build/
+*/*/build/
+.kotlin/
+local.properties
+
+# Android
+*.apk
+*.ap_
+*.dex
+captures/
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+out/
+
+# iOS (cuando exista .xcodeproj generado en una Mac)
+iosApp/**/xcuserdata/
+iosApp/**/*.xcworkspace/xcuserdata/
+.DS_Store

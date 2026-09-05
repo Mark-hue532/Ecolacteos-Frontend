@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nombre_app">Acopio</string>
+    <string name="placeholder_fase_1">Acopio -- Fase 1: núcleo sin UI todavía</string>
+</resources>
