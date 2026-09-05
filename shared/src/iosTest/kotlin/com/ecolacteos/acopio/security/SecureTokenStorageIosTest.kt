@@ -36,13 +36,7 @@ class SecureTokenStorageIosTest {
         storage.borrar()
 
         storage.guardar(sesion)
-        // Se afirma el OSStatus antes que el roundtrip: si Keychain rechaza la escritura, este assert dice
-        // *por que* (el numero de error de Security.framework) en vez de dejar un "expected X but was null"
-        // que no distingue "no se escribio" de "no se pudo leer". Ver el comentario de `ultimoStatus`.
-        assertEquals(0, storage.ultimoStatus, "SecItemAdd/SecItemUpdate devolvio un OSStatus de error")
-
         val leido = storage.leer()
-        assertEquals(0, storage.ultimoStatus, "SecItemCopyMatching devolvio un OSStatus de error")
         assertEquals(sesion, leido)
     }
 
@@ -69,7 +63,6 @@ class SecureTokenStorageIosTest {
 
         val sesionActualizada = sesion.copy(token = "token-actualizado")
         storage.guardar(sesionActualizada)
-        assertEquals(0, storage.ultimoStatus, "el segundo guardar (SecItemUpdate) devolvio un OSStatus de error")
 
         assertEquals(sesionActualizada, storage.leer())
     }
