@@ -1,3 +1,4 @@
+```kotlin
 package com.ecolacteos.acopio.di
 
 import app.cash.sqldelight.db.SqlDriver
@@ -10,7 +11,6 @@ import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesion
 import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesionFake
 import com.ecolacteos.acopio.synchronization.ConnectivityObserver
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.context.stopKoin
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
@@ -35,13 +35,17 @@ class CoreModuleTest : KoinTest {
 
     @Test
     fun `el grafo de coreModule se resuelve completo`() {
-        koinApplication { modules(coreModule) }.checkModules()
+        koinApplication {
+            modules(coreModule)
+        }.checkModules()
     }
 
     @Test
     fun `initKoin deja DispatcherProvider inyectable`() {
         initKoin()
+
         val dispatcherProvider by inject<DispatcherProvider>()
+
         assertNotNull(dispatcherProvider)
     }
 
@@ -51,7 +55,9 @@ class CoreModuleTest : KoinTest {
         // (se vio en un emulador durante la Fase 1): no debe tirar KoinAppAlreadyStartedException.
         initKoin()
         initKoin()
+
         val dispatcherProvider by inject<DispatcherProvider>()
+
         assertNotNull(dispatcherProvider)
     }
 
@@ -73,8 +79,13 @@ class CoreModuleTest : KoinTest {
                 networkModule,
                 securityModule,
                 module {
-                    single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() }
-                    single<VerificadorPendientes> { VerificadorPendientesFakeSinTrabajo }
+                    single<AlmacenamientoSeguroDeSesion> {
+                        AlmacenamientoSeguroDeSesionFake()
+                    }
+
+                    single<VerificadorPendientes> {
+                        VerificadorPendientesFakeSinTrabajo
+                    }
                 },
             )
         }.checkModules()
@@ -91,14 +102,24 @@ class CoreModuleTest : KoinTest {
         initKoin {
             modules(
                 module {
-                    single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() }
-                    single<SqlDriver> { crearDriverDeTest() }
-                    single<ConnectivityObserver> { ConnectivityObserverFake }
+                    single<AlmacenamientoSeguroDeSesion> {
+                        AlmacenamientoSeguroDeSesionFake()
+                    }
+
+                    single<SqlDriver> {
+                        crearDriverDeTest()
+                    }
+
+                    single<ConnectivityObserver> {
+                        ConnectivityObserverFake
+                    }
                 },
             )
         }
+
         val gestorSesion by inject<GestorSesion>()
         val tokenProvider by inject<TokenProvider>()
+
         assertNotNull(gestorSesion)
         assertNotNull(tokenProvider)
     }
@@ -107,9 +128,11 @@ class CoreModuleTest : KoinTest {
         val VerificadorPendientesFakeSinTrabajo = object : VerificadorPendientes {
             override suspend fun hayTrabajoSinSincronizar(): Boolean = false
         }
-
-        object ConnectivityObserverFake : ConnectivityObserver {
-            override val estaConectado: StateFlow<Boolean> = MutableStateFlow(true)
-        }
     }
 }
+
+object ConnectivityObserverFake : ConnectivityObserver {
+    override val conectado: kotlinx.coroutines.flow.Flow<Boolean> =
+        MutableStateFlow(true)
+}
+```
