@@ -61,8 +61,9 @@ class VentaLocalDataSource(
         )
     }
 
-    fun actualizarServerId(uuidCliente: String, serverId: String, sincronizadoEn: LocalDateTime) {
-        queries.actualizarServerId(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
+    /** Ver [RegistroAcopioLocalDataSource.marcarSincronizado] -- `serverId` nullable por `DATA-014`. */
+    fun marcarSincronizado(uuidCliente: String, serverId: String?, sincronizadoEn: LocalDateTime) {
+        queries.marcarSincronizado(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
     }
 
     fun eliminarSincronizadosAntesDe(fecha: LocalDateTime) {

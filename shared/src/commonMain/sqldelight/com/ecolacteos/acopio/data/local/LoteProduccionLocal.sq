@@ -32,11 +32,22 @@ INSERT INTO lote_produccion_local (
 obtenerPorUuidCliente:
 SELECT * FROM lote_produccion_local WHERE uuid_cliente = :uuidCliente;
 
+-- Ajustado en Fase 5, mismo criterio que `analisis_calidad_local` (ver comentarios allí).
 obtenerPendientes:
 SELECT * FROM lote_produccion_local
 WHERE usuario_id = :usuarioId
-  AND sync_status IN ('PENDING', 'PENDING_DEPENDENCY', 'FAILED')
-  AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora)
+  AND (
+    (sync_status = 'PENDING' AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora))
+    OR sync_status = 'SYNCING'
+    OR (sync_status = 'FAILED' AND next_attempt_at IS NOT NULL AND next_attempt_at <= :ahora)
+  )
+ORDER BY creado_en ASC;
+
+-- Un lote espera a que **todos** sus registros de acopio referenciados tengan id resoluble: no se puede
+-- enviar `registroAcopioIds` a medias sin cambiar en silencio lo que el lote significa.
+obtenerEnEsperaDeDependencia:
+SELECT * FROM lote_produccion_local
+WHERE usuario_id = :usuarioId AND sync_status = 'PENDING_DEPENDENCY'
 ORDER BY creado_en ASC;
 
 observarTodos:
@@ -48,9 +59,10 @@ SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :sync
     next_attempt_at = :nextAttemptAt
 WHERE uuid_cliente = :uuidCliente;
 
-actualizarServerId:
+-- Renombrada en Fase 5 (era `actualizarServerId`) -- ver el comentario en `RegistroAcopioLocal.sq`.
+marcarSincronizado:
 UPDATE lote_produccion_local
-SET server_id = :serverId, sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
+SET server_id = COALESCE(:serverId, server_id), sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
     sync_attempts = 0, sync_error = NULL, next_attempt_at = NULL
 WHERE uuid_cliente = :uuidCliente;
 

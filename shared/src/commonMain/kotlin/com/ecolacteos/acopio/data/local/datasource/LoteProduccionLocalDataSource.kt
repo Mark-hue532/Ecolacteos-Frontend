@@ -63,6 +63,10 @@ class LoteProduccionLocalDataSource(
     fun obtenerPendientes(usuarioId: String, ahora: LocalDateTime): List<LoteProduccion> =
         queries.obtenerPendientes(usuarioId, ahora).executeAsList().map { it.aDominio() }
 
+    /** Ver [AnalisisCalidadLocalDataSource.obtenerEnEsperaDeDependencia] -- mismo criterio (C-03, §18.1). */
+    fun obtenerEnEsperaDeDependencia(usuarioId: String): List<LoteProduccion> =
+        queries.obtenerEnEsperaDeDependencia(usuarioId).executeAsList().map { it.aDominio() }
+
     fun observarTodos(usuarioId: String): Flow<List<LoteProduccion>> =
         queries.observarTodos(usuarioId).asFlow().mapToList(dispatchers.io)
             .map { filas -> filas.map { it.aDominio() } }
@@ -83,8 +87,9 @@ class LoteProduccionLocalDataSource(
         )
     }
 
-    fun actualizarServerId(uuidCliente: String, serverId: String, sincronizadoEn: LocalDateTime) {
-        queries.actualizarServerId(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
+    /** Ver [RegistroAcopioLocalDataSource.marcarSincronizado] -- `serverId` nullable por `DATA-014`. */
+    fun marcarSincronizado(uuidCliente: String, serverId: String?, sincronizadoEn: LocalDateTime) {
+        queries.marcarSincronizado(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
     }
 
     fun eliminarSincronizadosAntesDe(fecha: LocalDateTime) {

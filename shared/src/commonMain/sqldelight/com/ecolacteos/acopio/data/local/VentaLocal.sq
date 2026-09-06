@@ -34,11 +34,17 @@ INSERT INTO venta_local (
 obtenerPorUuidCliente:
 SELECT * FROM venta_local WHERE uuid_cliente = :uuidCliente;
 
+-- Mismos 3 casos que `registro_acopio_local.obtenerPendientes` (ver comentario allí, ajuste de Fase 5):
+-- PENDING con backoff vencido o nunca intentada, SYNCING huérfana, y FAILED transitorio ya vencido.
+-- Venta nunca usa PENDING_DEPENDENCY -- no depende de ningún id ajeno.
 obtenerPendientes:
 SELECT * FROM venta_local
 WHERE usuario_id = :usuarioId
-  AND sync_status IN ('PENDING', 'FAILED')
-  AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora)
+  AND (
+    (sync_status = 'PENDING' AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora))
+    OR sync_status = 'SYNCING'
+    OR (sync_status = 'FAILED' AND next_attempt_at IS NOT NULL AND next_attempt_at <= :ahora)
+  )
 ORDER BY creado_en ASC;
 
 observarTodos:
@@ -50,9 +56,11 @@ SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :sync
     next_attempt_at = :nextAttemptAt
 WHERE uuid_cliente = :uuidCliente;
 
-actualizarServerId:
+-- Renombrada en Fase 5 (era `actualizarServerId`) -- ver el comentario en `RegistroAcopioLocal.sq`:
+-- el lote confirma por uuidCliente y no devuelve el id de Postgres (`DATA-014`).
+marcarSincronizado:
 UPDATE venta_local
-SET server_id = :serverId, sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
+SET server_id = COALESCE(:serverId, server_id), sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
     sync_attempts = 0, sync_error = NULL, next_attempt_at = NULL
 WHERE uuid_cliente = :uuidCliente;
 

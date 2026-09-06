@@ -71,8 +71,14 @@ class RegistroAcopioLocalDataSource(
         )
     }
 
-    fun actualizarServerId(uuidCliente: String, serverId: String, sincronizadoEn: LocalDateTime) {
-        queries.actualizarServerId(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
+    /**
+     * Confirma la fila como `SYNCED` (`§6.1`). [serverId] es **nullable** a propósito: el lote
+     * `POST /api/sync/{recurso}` confirma por `uuidCliente` y no devuelve el id de Postgres (`DATA-014`), así que
+     * una fila puede quedar legítimamente `SYNCED` sin `server_id`. [sincronizadoEn] es, por el mismo
+     * motivo, la hora del **dispositivo** al recibir la confirmación, no la del servidor.
+     */
+    fun marcarSincronizado(uuidCliente: String, serverId: String?, sincronizadoEn: LocalDateTime) {
+        queries.marcarSincronizado(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
     }
 
     /** Retención (`CLAUDE.md §3.6`): solo filas `SYNCED`, nunca toca `PENDING`/`SYNCING`/`FAILED`. Sin llamador todavía (Fase 9). */

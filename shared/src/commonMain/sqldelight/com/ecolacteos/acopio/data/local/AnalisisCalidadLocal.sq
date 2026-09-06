@@ -40,11 +40,25 @@ INSERT INTO analisis_calidad_local (
 obtenerPorUuidCliente:
 SELECT * FROM analisis_calidad_local WHERE uuid_cliente = :uuidCliente;
 
+-- Ajustado en Fase 5: mismos 3 casos que `registro_acopio_local.obtenerPendientes` (ver comentario allí).
+-- PENDING_DEPENDENCY **ya no sale por acá**: no es una candidata a enviar, es una espera legítima (§6.1).
+-- El Sync Engine la consulta aparte con `obtenerEnEsperaDeDependencia` para su paso de promoción, y así no
+-- tiene que filtrar por estado en Kotlin una lista que mezcla dos cosas distintas.
 obtenerPendientes:
 SELECT * FROM analisis_calidad_local
 WHERE usuario_id = :usuarioId
-  AND sync_status IN ('PENDING', 'PENDING_DEPENDENCY', 'FAILED')
-  AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora)
+  AND (
+    (sync_status = 'PENDING' AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora))
+    OR sync_status = 'SYNCING'
+    OR (sync_status = 'FAILED' AND next_attempt_at IS NOT NULL AND next_attempt_at <= :ahora)
+  )
+ORDER BY creado_en ASC;
+
+-- Filas retenidas a propósito porque su RegistroAcopio padre todavía no tiene `server_id` resoluble
+-- (C-03, §18.1). No se envían; el Sync Engine las reevalúa al final de cada ciclo.
+obtenerEnEsperaDeDependencia:
+SELECT * FROM analisis_calidad_local
+WHERE usuario_id = :usuarioId AND sync_status = 'PENDING_DEPENDENCY'
 ORDER BY creado_en ASC;
 
 observarTodos:
@@ -56,9 +70,10 @@ SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :sync
     next_attempt_at = :nextAttemptAt
 WHERE uuid_cliente = :uuidCliente;
 
-actualizarServerId:
+-- Renombrada en Fase 5 (era `actualizarServerId`) -- ver el comentario en `RegistroAcopioLocal.sq`.
+marcarSincronizado:
 UPDATE analisis_calidad_local
-SET server_id = :serverId, sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
+SET server_id = COALESCE(:serverId, server_id), sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
     sync_attempts = 0, sync_error = NULL, next_attempt_at = NULL
 WHERE uuid_cliente = :uuidCliente;
 

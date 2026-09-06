@@ -302,9 +302,15 @@ PENDING → SYNCING → SYNCED
 - **PENDING**: creado en SQLite, sin dependencias sin resolver, aún no enviado. Visible en la UI de
   inmediato con badge "pendiente de sync".
 - **SYNCING**: en vuelo. Un `sync_attempts` y `next_attempt_at` controlan reintentos.
-- **SYNCED**: `POST /api/sync/*` devolvió el item dentro de `confirmados[]`. Se guarda el `server_id` (id
-  real de Postgres) y `sincronizadoEn` que devuelve el backend, y el registro pasa a ser de solo lectura
-  local (coherente con que `RegistroAcopio` es inmutable en el propio dominio del backend).
+- **SYNCED**: `POST /api/sync/*` devolvió el item dentro de `confirmados[]`, y el registro pasa a ser de
+  solo lectura local (coherente con que `RegistroAcopio` es inmutable en el propio dominio del backend).
+  ⚠️ **Corregido en Fase 5 (`DATA-014`)**: la Rev. 2 de este documento afirmaba acá que se guardaban el
+  `server_id` y el `sincronizadoEn` "que devuelve el backend". El lote **no devuelve ninguno de los dos**:
+  `confirmados[]` es `List<String>` de `uuidCliente` y nada más (verificado en `MOBILE_DATA_MAPPING.md
+  §5.6`, que manda sobre este documento para forma de campo, ver `CLAUDE.md §2`). En consecuencia una fila
+  puede quedar legítimamente `SYNCED` con `server_id` nulo, y `sincronizado_en` es la hora **del
+  dispositivo** al recibir la confirmación, no la del servidor. El id de Postgres solo aparece hoy en la
+  respuesta del POST individual (`RegistroAcopioResponse.id`), que el Sync Engine no usa.
 - **FAILED (transitorio)**: timeout, sin red a mitad de subida, 5xx del servidor. Reintentable con backoff.
 - **FAILED (permanente)**: el backend devolvió el item dentro de `errores[]` de `SyncResultResponse`
   (validación Bean Validation o regla de negocio — ej. proveedor inactivo, `fechaHora` fuera de tolerancia).
@@ -413,7 +419,8 @@ Para los 4 recursos con `uuidCliente`, el flujo de creación offline es exactame
 4. Sync Engine espera conectividad
 5. POST /api/sync/{recurso} con el lote de PENDING
 6. Backend responde {confirmados, errores} — busca primero por uuidCliente
-7. Reconciliación: confirmados → SYNCED (+ server_id); errores → FAILED (+ motivo)
+7. Reconciliación: confirmados → SYNCED; errores → FAILED (+ motivo)
+   (sin server_id: el lote no lo devuelve — ver DATA-014 y la nota de §6.1)
 ```
 
 El móvil **nunca depende de que el servidor genere primero el id** para estos 4 recursos — exactamente lo
@@ -843,12 +850,15 @@ ConnectivityObserver emite true
 SyncEngine.ejecutarCiclo()
  ↓
 Por cada recurso (RegistroAcopio, AnalisisCalidad*, LoteProduccion*, Venta):
-   lote = SQLite.seleccionar(status=PENDING o FAILED-transitorio con next_attempt_at <= now)
+   lote = SQLite.seleccionar(status=PENDING, SYNCING huérfano, o FAILED-transitorio con next_attempt_at <= now)
+   trocear en fragmentos de 50 (decisión de Fase 5)
    marcar SYNCING
-   POST /api/sync/{recurso}(lote)
+   POST /api/sync/{recurso}(fragmento)
    Spring Boot → procesarLote → {confirmados[], errores[]}
-   por uuidCliente en confirmados → SQLite: status=SYNCED, server_id, sincronizado_en
+   por uuidCliente en confirmados → SQLite: status=SYNCED, sincronizado_en=hora del dispositivo
+                                    (NO llega server_id en el lote — DATA-014, ver §6.1)
    por uuidCliente en errores → SQLite: status=FAILED, sync_error=motivo (no reintentable automático)
+   uuidCliente ausente de ambas listas → se queda SYNCING, se reintenta el próximo ciclo (§6.2)
  ↓
 GET /api/sync/cambios → reemplaza las tablas *_cache (§11.2)
 ```

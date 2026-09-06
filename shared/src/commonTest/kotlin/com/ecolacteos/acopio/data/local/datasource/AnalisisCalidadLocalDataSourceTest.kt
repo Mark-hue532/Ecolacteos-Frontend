@@ -155,14 +155,40 @@ class AnalisisCalidadLocalDataSourceTest {
         }
     }
 
+    /**
+     * Ajustado en Fase 5: `PENDING_DEPENDENCY` **ya no** sale por `obtenerPendientes` (no es candidata a
+     * enviar, es una espera legítima de §6.1) sino por `obtenerEnEsperaDeDependencia`, que es lo que el
+     * Sync Engine consulta en su paso de promoción.
+     */
     @Test
-    fun `obtenerPendientes incluye PENDING_DEPENDENCY -- unico enum que la usa junto con LoteProduccion`() {
+    fun `PENDING_DEPENDENCY sale por obtenerEnEsperaDeDependencia -- no por obtenerPendientes`() {
         val ds = dataSource()
         ds.insertar(analisis(uuidCliente = "dependiente"))
         ds.actualizarEstadoSync("dependiente", SyncStatus.PENDING_DEPENDENCY, 0, null, null)
 
+        assertEquals(emptyList(), ds.obtenerPendientes("usuario-1", LocalDateTime(2026, 9, 5, 0, 0, 0)))
+        assertEquals(listOf("dependiente"), ds.obtenerEnEsperaDeDependencia("usuario-1").map { it.uuidCliente })
+    }
+
+    /** Una fila `SYNCING` huérfana (la app murió a mitad de vuelo) vuelve a ser candidata (§6.6). */
+    @Test
+    fun `obtenerPendientes recupera una fila SYNCING huerfana`() {
+        val ds = dataSource()
+        ds.insertar(analisis(uuidCliente = "en-vuelo"))
+        ds.actualizarEstadoSync("en-vuelo", SyncStatus.SYNCING, 1, null, null)
+
         val pendientes = ds.obtenerPendientes("usuario-1", LocalDateTime(2026, 9, 5, 0, 0, 0))
 
-        assertEquals(listOf("dependiente"), pendientes.map { it.uuidCliente })
+        assertEquals(listOf("en-vuelo"), pendientes.map { it.uuidCliente })
+    }
+
+    /** Un `FAILED` permanente (sin `next_attempt_at`) no se reintenta solo (§6.1). */
+    @Test
+    fun `obtenerPendientes excluye un FAILED permanente sin next_attempt_at`() {
+        val ds = dataSource()
+        ds.insertar(analisis(uuidCliente = "rechazado"))
+        ds.actualizarEstadoSync("rechazado", SyncStatus.FAILED, 1, "proveedor inactivo", null)
+
+        assertEquals(emptyList(), ds.obtenerPendientes("usuario-1", LocalDateTime(2026, 9, 5, 0, 0, 0)))
     }
 }

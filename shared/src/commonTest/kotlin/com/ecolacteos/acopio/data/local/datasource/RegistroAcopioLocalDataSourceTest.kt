@@ -144,7 +144,7 @@ class RegistroAcopioLocalDataSourceTest {
     }
 
     @Test
-    fun `actualizarServerId confirma sync -- SYNCED -- resetea intentos y error`() {
+    fun `marcarSincronizado confirma sync -- SYNCED -- resetea intentos y error`() {
         val dataSource = RegistroAcopioLocalDataSource(
             crearAcopioDatabase(crearDriverDeTest()).registroAcopioLocalQueries,
             DispatcherProviderDeTest,
@@ -153,7 +153,7 @@ class RegistroAcopioLocalDataSourceTest {
         dataSource.actualizarEstadoSync("reg-1", SyncStatus.FAILED, 3, "error previo", null)
 
         val sincronizadoEn = LocalDateTime(2026, 9, 5, 8, 0, 0)
-        dataSource.actualizarServerId("reg-1", "server-123", sincronizadoEn)
+        dataSource.marcarSincronizado("reg-1", "server-123", sincronizadoEn)
 
         val actualizado = dataSource.obtenerPorUuidCliente("reg-1")!!
         assertEquals(SyncStatus.SYNCED, actualizado.syncStatus)

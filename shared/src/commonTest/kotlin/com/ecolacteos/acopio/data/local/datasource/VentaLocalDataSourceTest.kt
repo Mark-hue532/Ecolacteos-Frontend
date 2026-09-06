@@ -57,11 +57,11 @@ class VentaLocalDataSourceTest {
     }
 
     @Test
-    fun `actualizarEstadoSync y actualizarServerId funcionan igual que en las otras 3 tablas`() {
+    fun `actualizarEstadoSync y marcarSincronizado funcionan igual que en las otras 3 tablas`() {
         val ds = dataSource()
         ds.insertar(venta())
 
-        ds.actualizarServerId("venta-1", "server-1", LocalDateTime(2026, 9, 5, 8, 0, 0))
+        ds.marcarSincronizado("venta-1", "server-1", LocalDateTime(2026, 9, 5, 8, 0, 0))
 
         val actualizado = ds.obtenerPorUuidCliente("venta-1")!!
         assertEquals(SyncStatus.SYNCED, actualizado.syncStatus)

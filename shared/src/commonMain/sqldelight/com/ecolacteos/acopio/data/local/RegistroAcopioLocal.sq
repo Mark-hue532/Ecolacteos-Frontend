@@ -37,11 +37,21 @@ INSERT INTO registro_acopio_local (
 obtenerPorUuidCliente:
 SELECT * FROM registro_acopio_local WHERE uuid_cliente = :uuidCliente;
 
+-- Candidatas a enviar en un ciclo de sync (ajustado en Fase 5, ver checkpoint):
+--  · PENDING          -> nunca intentada (next_attempt_at NULL) o con backoff ya vencido.
+--  · SYNCING          -> huérfana: la app murió a mitad de vuelo, o la respuesta omitió el ítem
+--                        (§6.2). Reintentar es seguro por idempotencia de uuidCliente (§6.4/§7).
+--  · FAILED transitorio -> tiene next_attempt_at; entra recién cuando ese instante pasó.
+-- Un FAILED **permanente** (item en errores[], sin next_attempt_at) queda deliberadamente afuera:
+-- §6.1 exige que no se reintente solo, requiere corrección del usuario.
 obtenerPendientes:
 SELECT * FROM registro_acopio_local
 WHERE usuario_id = :usuarioId
-  AND sync_status IN ('PENDING', 'FAILED')
-  AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora)
+  AND (
+    (sync_status = 'PENDING' AND (next_attempt_at IS NULL OR next_attempt_at <= :ahora))
+    OR sync_status = 'SYNCING'
+    OR (sync_status = 'FAILED' AND next_attempt_at IS NOT NULL AND next_attempt_at <= :ahora)
+  )
 ORDER BY creado_en ASC;
 
 observarTodos:
@@ -53,9 +63,12 @@ SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :sync
     next_attempt_at = :nextAttemptAt
 WHERE uuid_cliente = :uuidCliente;
 
-actualizarServerId:
+-- Renombrada en Fase 5 (era `actualizarServerId`): `server_id` es **nullable** a propósito -- el lote
+-- `POST /api/sync/*` confirma por `uuidCliente` y NO devuelve el id de Postgres (`DATA-014`), así que una
+-- fila puede quedar legítimamente SYNCED sin `server_id`. El nombre viejo prometía lo contrario.
+marcarSincronizado:
 UPDATE registro_acopio_local
-SET server_id = :serverId, sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
+SET server_id = COALESCE(:serverId, server_id), sincronizado_en = :sincronizadoEn, sync_status = 'SYNCED',
     sync_attempts = 0, sync_error = NULL, next_attempt_at = NULL
 WHERE uuid_cliente = :uuidCliente;
 

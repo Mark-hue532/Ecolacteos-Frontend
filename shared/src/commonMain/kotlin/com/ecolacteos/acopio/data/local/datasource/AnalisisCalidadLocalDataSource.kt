@@ -46,6 +46,13 @@ class AnalisisCalidadLocalDataSource(
     fun obtenerPendientes(usuarioId: String, ahora: LocalDateTime): List<AnalisisCalidad> =
         queries.obtenerPendientes(usuarioId, ahora).executeAsList().map { it.aDominio() }
 
+    /**
+     * Filas retenidas en `PENDING_DEPENDENCY` (C-03, §18.1) -- **no** son candidatas a enviar; el Sync
+     * Engine las reevalúa al final de cada ciclo por si el padre ya resolvió su `server_id`.
+     */
+    fun obtenerEnEsperaDeDependencia(usuarioId: String): List<AnalisisCalidad> =
+        queries.obtenerEnEsperaDeDependencia(usuarioId).executeAsList().map { it.aDominio() }
+
     fun observarTodos(usuarioId: String): Flow<List<AnalisisCalidad>> =
         queries.observarTodos(usuarioId).asFlow().mapToList(dispatchers.io)
             .map { filas -> filas.map { it.aDominio() } }
@@ -66,8 +73,9 @@ class AnalisisCalidadLocalDataSource(
         )
     }
 
-    fun actualizarServerId(uuidCliente: String, serverId: String, sincronizadoEn: LocalDateTime) {
-        queries.actualizarServerId(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
+    /** Ver [RegistroAcopioLocalDataSource.marcarSincronizado] -- `serverId` nullable por `DATA-014`. */
+    fun marcarSincronizado(uuidCliente: String, serverId: String?, sincronizadoEn: LocalDateTime) {
+        queries.marcarSincronizado(serverId = serverId, sincronizadoEn = sincronizadoEn, uuidCliente = uuidCliente)
     }
 
     fun eliminarSincronizadosAntesDe(fecha: LocalDateTime) {

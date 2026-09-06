@@ -1021,6 +1021,40 @@ Solución: mitigación en el cliente -- registro_acopio_cache lleva una columna 
                             cierra el hueco por completo.
 ```
 
+```text
+ID: DATA-014
+Severidad: HIGH
+Endpoint: POST /api/sync/registros-acopio (y los otros 3 endpoints de lote, por simetría)
+Campo: (ausencia de) id de servidor y sincronizadoEn en SyncResultResponse.confirmados[]
+Backend: confirmados es List<String> -- solo uuidCliente (verificado en §5.6 leyendo SyncController/
+         SyncService). El POST individual equivalente (POST /api/registros-acopio) SÍ devuelve
+         RegistroAcopioResponse completo, con id y sincronizadoEn.
+Problema: MOBILE_ARCHITECTURE.md §6.1/§7/§16 asumían que el lote devolvía server_id + sincronizadoEn y
+          que el cliente los guardaba al confirmar. No los devuelve. Consecuencia en cadena, detectada
+          al implementar el Sync Engine (Fase 5): registro_acopio_local.server_id nunca se puebla por la
+          vía del lote, así que la mitigación 1 de §18.1 (padre propio capturado en este dispositivo)
+          no puede completarse -- el hijo AnalisisCalidad/LoteProduccion necesita ese id para armar
+          registroAcopioId (DATA-003) y no existe otra forma de obtenerlo: no hay endpoint de búsqueda
+          por uuidCliente, y el listado por proveedor devuelve el DTO resumen sin uuidCliente (DATA-013),
+          así que tampoco sirve para mapear las filas propias.
+Impacto: un AnalisisCalidad/LoteProduccion cuyo RegistroAcopio padre se capturó en ESTE mismo dispositivo
+         no puede sincronizarse nunca mientras el padre solo se confirme por lote. Los otros caminos no
+         se ven afectados: RegistroAcopio y Venta sincronizan normal, y el hijo con padre AJENO (el caso
+         normal de CALIDAD según §18.1) ya nace con registro_acopio_server_id resuelto.
+Solución: (a) preferida, y la que ya resuelve §18.1: aceptar registroAcopioUuidCliente en
+              AnalisisCalidadRequest/CrearLoteRequest y resolver server-side -- el cliente deja de
+              necesitar el id ajeno por completo;
+          (b) alternativa mínima: que confirmados[] devuelva {uuidCliente, id, sincronizadoEn} en vez de
+              solo el uuidCliente. Es retrocompatible en lo semántico y le da al cliente lo que §6.1 ya
+              daba por hecho.
+          Mitigación adoptada en Fase 5 mientras tanto (opción A del checkpoint, aprobada): el motor
+          marca SYNCED sin server_id, y el hijo bloqueado queda en PENDING_DEPENDENCY con un sync_error
+          explícito que nombra este issue, en vez de oscilar en silencio entre estados.
+¿Backend change required?: SÍ -- es el mismo cambio que §18.1 ya marcaba como OBLIGATORIO para la cadena
+                            offline cruzada; este hallazgo confirma que sin él la cadena no cierra por
+                            ninguna vía disponible hoy en el contrato.
+```
+
 ---
 
 ## 11. Matriz maestra de compatibilidad
