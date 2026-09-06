@@ -1,0 +1,22 @@
+import kotlinx.datetime.LocalDateTime;
+
+-- `MOBILE_SCREENS.md §3.4`: borrador de los 5 formularios de captura, con debounce ~500ms en cada cambio
+-- de campo. Tabla nueva de la Fase 7 (`PROMPT_FASE_07.md §2.5`, opción 1 -- no existía desde la Fase 4).
+-- Un borrador NO es un registro pendiente (`§3.4`): no lleva `sync_status`, no aparece en `S-05`, no se
+-- sincroniza. `pantalla` es la clave (una por formulario, ej. "registrar_venta") -- un solo borrador vivo
+-- por pantalla a la vez, coherente con que cada formulario de captura ocupa toda la pantalla (`§2.1` regla 2).
+CREATE TABLE borrador_formulario (
+  pantalla        TEXT NOT NULL PRIMARY KEY,
+  payload_json    TEXT NOT NULL,
+  actualizado_en  TEXT AS LocalDateTime NOT NULL
+);
+
+guardar:
+INSERT OR REPLACE INTO borrador_formulario (pantalla, payload_json, actualizado_en)
+VALUES (:pantalla, :payloadJson, :actualizadoEn);
+
+obtener:
+SELECT * FROM borrador_formulario WHERE pantalla = :pantalla;
+
+borrar:
+DELETE FROM borrador_formulario WHERE pantalla = :pantalla;

@@ -14,8 +14,23 @@ turbine = "1.2.1"
 androidxTestRunner = "1.7.1"
 androidxTestJunit = "1.3.1"
 androidMinSdk = "26"
-androidCompileSdk = "36"
+# CLAUDE.md §4 fijaba compileSdk = 36, pero los artefactos Android de Compose Multiplatform 1.12.0
+# (`androidx.compose.*-android`, 8 en total -- runtime, ui, foundation, animation) exigen `compileSdk >= 37`
+# (verificado con un build real: `checkDebugAarMetadata` falla si no se sube). Son dos valores que CLAUDE.md
+# §4 fija por separado y que no pueden convivir tal cual -- decisión aprobada en el checkpoint de la Fase 7:
+# se sube compileSdk, `androidTargetSdk` se queda en 36 (compileSdk no cambia comportamiento en runtime).
+androidCompileSdk = "37"
 androidTargetSdk = "36"
+androidxActivityCompose = "1.11.0"
+# CLAUDE.md §4 fija `androidx.lifecycle 2.11.0` -- ese número es del grupo real de Google
+# (`androidx.lifecycle:*`, Android-only). El `ViewModel` multiplataforma de Compose Multiplatform 1.12.0 lo
+# publica JetBrains bajo un grupo y tren de versiones propio (`org.jetbrains.androidx.lifecycle:*`), que NO
+# comparte numeración: 2.11.0 no existe ahí y rompe la resolución en los targets iOS (klib no publicado).
+# 2.9.6 es la versión real que exige `navigation-compose 2.9.0-alpha16` de este mismo Compose Multiplatform
+# -- confirmado con un build real, no supuesto (ver checkpoint de la Fase 7, sección "Decisiones tomadas").
+androidxLifecycleViewmodelCompose = "2.9.6"
+navigationCompose = "2.9.0-alpha16"
+koinCompose = "4.2.2"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -45,6 +60,15 @@ sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", versi
 # (CLAUDE.md §4, `PROMPT_FASE_04.md §1`, trampa #7): un driver JDBC empaquetado en el APK/IPA es peso
 # muerto y en Android puede chocar con `sqldelight-android-driver`.
 sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+# Compose Multiplatform (Fase 7, PROMPT_FASE_07.md §6): ViewModel multiplataforma sobre androidx.lifecycle,
+# navegación (grafo de §2 de MOBILE_SCREENS.md) e inyección en Compose. Los tres son dependencias nuevas
+# fuera de CLAUDE.md §4 -- justificadas en el checkpoint de la Fase 7.
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivityCompose" }
+androidx-lifecycle-viewmodel = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel", version.ref = "androidxLifecycleViewmodelCompose" }
+androidx-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidxLifecycleViewmodelCompose" }
+navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koinCompose" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koinCompose" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
@@ -55,3 +79,5 @@ androidApplication = { id = "com.android.application", version.ref = "agp" }
 # `androidApp`, necesario porque el proyecto corre con `android.builtInKotlin=false` (ver gradle.properties).
 kotlinAndroid = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

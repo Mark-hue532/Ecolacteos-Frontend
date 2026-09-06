@@ -4,6 +4,7 @@ import com.ecolacteos.acopio.data.local.DispatcherProviderDeTest
 import com.ecolacteos.acopio.data.local.crearAcopioDatabase
 import com.ecolacteos.acopio.data.local.crearDriverDeTest
 import com.ecolacteos.acopio.data.local.datasource.AnalisisCalidadLocalDataSource
+import com.ecolacteos.acopio.data.local.datasource.BorradorFormularioLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.CatalogosLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.LoteProduccionLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.RegistroAcopioCacheLocalDataSource
@@ -12,6 +13,8 @@ import com.ecolacteos.acopio.data.local.datasource.RutaZonaLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.VentaLocalDataSource
 import com.ecolacteos.acopio.data.repository.AnalisisCalidadRepository
 import com.ecolacteos.acopio.data.repository.AnalisisCalidadRepositoryImpl
+import com.ecolacteos.acopio.data.repository.BorradorFormularioRepository
+import com.ecolacteos.acopio.data.repository.BorradorFormularioRepositoryImpl
 import com.ecolacteos.acopio.data.repository.CatalogoRepository
 import com.ecolacteos.acopio.data.repository.CatalogoRepositoryImpl
 import com.ecolacteos.acopio.data.repository.ComunicadoConfirmacionRepository
@@ -69,6 +72,7 @@ class FixtureRepositorios(
         DispatcherProviderDeTest,
     )
     val ventasLocal = VentaLocalDataSource(database.ventaLocalQueries, DispatcherProviderDeTest)
+    val borradorFormularioLocal = BorradorFormularioLocalDataSource(database.borradorFormularioQueries)
     val cacheLocal = RegistroAcopioCacheLocalDataSource(database.registroAcopioCacheQueries, DispatcherProviderDeTest)
     val rutaZonaLocal = RutaZonaLocalDataSource(database.rutaZonaCacheQueries)
     val catalogosLocal = CatalogosLocalDataSource(
@@ -127,7 +131,9 @@ class FixtureRepositorios(
     val registroAcopioRepository: RegistroAcopioRepository =
         RegistroAcopioRepositoryImpl(gestorSesion, registrosLocal, cacheLocal, apiClient, syncEngineParaRepositorios, reloj, zona)
     val ventaRepository: VentaRepository =
-        VentaRepositoryImpl(gestorSesion, ventasLocal, syncEngineParaRepositorios, reloj, zona)
+        VentaRepositoryImpl(gestorSesion, ventasLocal, syncEngineParaRepositorios, apiClient, reloj, zona)
+    val borradorFormularioRepository: BorradorFormularioRepository =
+        BorradorFormularioRepositoryImpl(borradorFormularioLocal, reloj, zona)
     val analisisCalidadRepository: AnalisisCalidadRepository =
         AnalisisCalidadRepositoryImpl(gestorSesion, analisisLocal, resolutor, syncEngineParaRepositorios, reloj, zona)
     val loteProduccionRepository: LoteProduccionRepository =

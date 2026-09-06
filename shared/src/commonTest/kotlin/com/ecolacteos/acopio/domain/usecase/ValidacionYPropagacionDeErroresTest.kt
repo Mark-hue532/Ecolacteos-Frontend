@@ -38,6 +38,7 @@ class ValidacionYPropagacionDeErroresTest {
         override fun observarPendientes(): Flow<List<Venta>> = flowOf(emptyList())
         override fun reintentar(uuidCliente: String) = Unit
         override suspend fun purgarSincronizados() = Unit
+        override suspend fun obtenerDetalle(uuidCliente: String): com.ecolacteos.acopio.domain.model.VentaDetalle? = null
     }
 
     private fun datosVenta(tipoCliente: TipoClienteVenta) = NuevaVenta(
@@ -74,6 +75,7 @@ class ValidacionYPropagacionDeErroresTest {
             override fun observarPendientes(): Flow<List<Venta>> = flowOf(emptyList())
             override fun reintentar(uuidCliente: String) = Unit
             override suspend fun purgarSincronizados() = Unit
+            override suspend fun obtenerDetalle(uuidCliente: String): com.ecolacteos.acopio.domain.model.VentaDetalle? = null
         }
         val useCase = CrearVentaUseCase(repository)
 

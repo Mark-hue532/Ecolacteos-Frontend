@@ -5,6 +5,9 @@
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.kotlinAndroid)
+    // Fase 7 (`PROMPT_FASE_07.md §6`): `MainActivity.kt` monta `setContent { App() }`, código composable
+    // propio de este módulo -- necesita su propio compilador de Compose, no solo el de `shared/`.
+    alias(libs.plugins.composeCompiler)
 }
 
 kotlin {
@@ -27,6 +30,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    buildFeatures {
+        compose = true
+    }
 }
 
 dependencies {
@@ -35,4 +42,8 @@ dependencies {
     // implementación de `shared/`), así que no llega transitivamente. `MainActivity` necesita `module {}`
     // para registrar el binding de `SecureTokenStorage`, específico de esta plataforma (Fase 3).
     implementation(libs.koin.core)
+    // Fase 7: `shared` expone `compose.runtime`/`compose.ui` como `api` (ver `shared/build.gradle.kts`),
+    // pero `ComponentActivity.setContent` en sí vive en `activity-compose`, que `androidApp` sí debe
+    // declarar directo -- es el punto de montaje de la plataforma, no un detalle interno de `shared/`.
+    implementation(libs.androidx.activity.compose)
 }

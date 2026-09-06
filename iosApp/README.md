@@ -54,8 +54,9 @@ runner macOS.
 ## Qué NO hacer
 
 - No declarar los targets de `shared` condicionalmente por host -- ya están declarados siempre
-  (`androidTarget`, `iosX64`, `iosArm64`, `iosSimulatorArm64`) precisamente para que este paso, cuando
-  llegue, no requiera tocar `shared/build.gradle.kts`.
+  (`androidTarget`, `iosArm64`, `iosSimulatorArm64`) precisamente para que este paso, cuando llegue, no
+  requiera tocar `shared/build.gradle.kts`. (`iosX64` -- Mac Intel -- se retiró en la Fase 7: Compose
+  Multiplatform 1.12.0 no publica esa variante para ninguno de sus artefactos, ver checkpoint de la Fase 7.)
 - No intentar generar el `.xcodeproj` con herramientas de línea de comandos desde Windows (`xcodegen`,
   plantillas, etc.) sin haberlo probado antes en una Mac real -- el CI ya es la fuente de verdad de que el
   framework se genera y enlaza correctamente; un `.xcodeproj` generado a ciegas puede quedar inconsistente

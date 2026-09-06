@@ -2,6 +2,8 @@ package com.ecolacteos.acopio.di
 
 import com.ecolacteos.acopio.data.repository.AnalisisCalidadRepository
 import com.ecolacteos.acopio.data.repository.AnalisisCalidadRepositoryImpl
+import com.ecolacteos.acopio.data.repository.BorradorFormularioRepository
+import com.ecolacteos.acopio.data.repository.BorradorFormularioRepositoryImpl
 import com.ecolacteos.acopio.data.repository.CatalogoRepository
 import com.ecolacteos.acopio.data.repository.CatalogoRepositoryImpl
 import com.ecolacteos.acopio.data.repository.ComunicadoConfirmacionRepository
@@ -28,7 +30,7 @@ val repositoryModule = module {
     single<RegistroAcopioRepository> {
         RegistroAcopioRepositoryImpl(gestorSesion = get(), local = get(), cacheLocal = get(), apiClient = get(), syncEngine = get())
     }
-    single<VentaRepository> { VentaRepositoryImpl(gestorSesion = get(), local = get(), syncEngine = get()) }
+    single<VentaRepository> { VentaRepositoryImpl(gestorSesion = get(), local = get(), syncEngine = get(), apiClient = get()) }
     single<AnalisisCalidadRepository> {
         AnalisisCalidadRepositoryImpl(gestorSesion = get(), local = get(), resolutor = get(), syncEngine = get())
     }
@@ -38,6 +40,7 @@ val repositoryModule = module {
     single<CatalogoRepository> {
         CatalogoRepositoryImpl(catalogosLocal = get(), rutaZonaLocal = get(), apiClient = get(), syncEngine = get())
     }
+    single<BorradorFormularioRepository> { BorradorFormularioRepositoryImpl(local = get()) }
     single<CorreccionRegistroRepository> { CorreccionRegistroRepositoryImpl(apiClient = get()) }
     single<ComunicadoConfirmacionRepository> { ComunicadoConfirmacionRepositoryImpl(apiClient = get()) }
 }

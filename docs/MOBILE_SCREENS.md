@@ -1123,6 +1123,20 @@ alcance mínimo del sistema de diseño (§14).
 Este documento define estructura y comportamiento. Falta la capa visual, y se puede trabajar **en
 paralelo** al desarrollo de las Fases 1–6 (que no tienen UI).
 
+**Directrices clave de UI/UX** (a incorporar en los tokens de diseño — *Colors*, *Theme*, *Type* — y en los
+prototipos/componentes de la Fase 7, antes de generar las tareas):
+
+1. **Paleta de colores (tema)**:
+   * Usar tonalidades verdosas suaves / pastel / orgánicas (inspiradas en el rubro lácteo/agrícola),
+     evitando verdes fosforescentes, chillones o saturados.
+   * Los colores deben ser intuitivos (verde suave para estados de éxito/sincronizado, tonos
+     neutros/cálidos para alertas o datos pendientes).
+2. **Diseño de interfaz (UI/UX)**:
+   * Diseñar una interfaz moderna y fresca (no la clásica app empresarial tosca/antigua), pero manteniendo
+     una alta usabilidad y simplicidad (fácil de usar en campo).
+   * Priorizar tarjetas visuales (*Cards*), componentes limpios, tipografía legible y buena jerarquía
+     visual con Jetpack Compose / Compose Multiplatform.
+
 **Entregables mínimos, en orden de necesidad:**
 
 1. **Tokens del sistema**: paleta (con estados de éxito/atención/error para los badges de sync),

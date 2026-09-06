@@ -4,6 +4,7 @@ import app.cash.sqldelight.db.SqlDriver
 import com.ecolacteos.acopio.data.local.AcopioDatabase
 import com.ecolacteos.acopio.data.local.crearAcopioDatabase
 import com.ecolacteos.acopio.data.local.datasource.AnalisisCalidadLocalDataSource
+import com.ecolacteos.acopio.data.local.datasource.BorradorFormularioLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.CatalogosLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.LoteProduccionLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.RegistroAcopioCacheLocalDataSource
@@ -33,6 +34,7 @@ val localModule = module {
         LoteProduccionLocalDataSource(db.loteProduccionLocalQueries, db.loteProduccionRegistroLocalQueries, get())
     }
     single { VentaLocalDataSource(get<AcopioDatabase>().ventaLocalQueries, get()) }
+    single { BorradorFormularioLocalDataSource(get<AcopioDatabase>().borradorFormularioQueries) }
     single { RegistroAcopioCacheLocalDataSource(get<AcopioDatabase>().registroAcopioCacheQueries, get()) }
     single { RutaZonaLocalDataSource(get<AcopioDatabase>().rutaZonaCacheQueries) }
     single {

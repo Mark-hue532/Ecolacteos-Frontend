@@ -1,8 +1,8 @@
 package com.ecolacteos.acopio
 
-import android.app.Activity
 import android.os.Bundle
-import android.widget.TextView
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import app.cash.sqldelight.db.SqlDriver
 import com.ecolacteos.acopio.data.local.AcopioDriverFactory
 import com.ecolacteos.acopio.di.initKoin
@@ -10,14 +10,15 @@ import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesion
 import com.ecolacteos.acopio.security.SecureTokenStorage
 import com.ecolacteos.acopio.synchronization.ConnectivityObserver
 import com.ecolacteos.acopio.synchronization.ConnectivityObserverDePlataforma
+import com.ecolacteos.acopio.ui.App
 import org.koin.dsl.module
 
 /**
- * Contenedor delgado (CLAUDE.md §3.5): solo arranca Koin y monta la app. Sin UI de Compose todavía --
- * eso es Fase 7. `activity: Activity` en vez de `AppCompatActivity` porque no hay dependencia de
- * AndroidX AppCompat declarada en esta fase (fuera de alcance -- ver `libs.versions.toml`).
+ * Contenedor delgado (CLAUDE.md §3.5): arranca Koin y monta `App()` de `shared/ui/` -- ninguna lógica de
+ * presentación vive acá (`CLAUDE.md §3.5`, trampa #3 de `PROMPT_FASE_07.md`). `ComponentActivity`, no
+ * `Activity` a secas (Fase 1): `setContent` (Compose) es una extensión de `ComponentActivity`.
  */
-class MainActivity : Activity() {
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,10 +39,8 @@ class MainActivity : Activity() {
             )
         }
 
-        setContentView(
-            TextView(this).apply {
-                text = getString(R.string.placeholder_fase_1)
-            },
-        )
+        setContent {
+            App()
+        }
     }
 }

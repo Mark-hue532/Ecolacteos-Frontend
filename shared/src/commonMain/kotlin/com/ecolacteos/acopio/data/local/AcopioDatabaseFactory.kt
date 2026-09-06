@@ -108,4 +108,8 @@ fun crearAcopioDatabase(driver: SqlDriver): AcopioDatabase = AcopioDatabase(
         origenAdapter = OrigenColumnAdapter,
         actualizado_enAdapter = LocalDateTimeColumnAdapter,
     ),
+    // Fase 7 (`PROMPT_FASE_07.md §2.5`) -- ver `BorradorFormulario.sq`.
+    borrador_formularioAdapter = Borrador_formulario.Adapter(
+        actualizado_enAdapter = LocalDateTimeColumnAdapter,
+    ),
 )

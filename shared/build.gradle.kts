@@ -8,12 +8,14 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.sqldelight)
+    alias(libs.plugins.composeMultiplatform)
+    alias(libs.plugins.composeCompiler)
 }
 
 kotlin {
     jvmToolchain(17)
 
-    // Los cuatro targets se declaran siempre, sin condicionales por host -- iOS no compila en Windows
+    // Los targets se declaran siempre, sin condicionales por host -- iOS no compila en Windows
     // pero commonMain debe seguir siendo multiplataforma correcto (CLAUDE.md §8, ver también §9 de esta fase).
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -24,8 +26,13 @@ kotlin {
 
     jvm() // permite correr commonTest en JVM puro sin emulador/simulador (ver MOBILE_ARCHITECTURE.md §14 -- Testing)
 
+    // `iosX64()` (Mac Intel) se retiró en la Fase 7 (`PROMPT_FASE_07.md §6`, checkpoint): Compose
+    // Multiplatform 1.12.0 no publica variante `iosX64` para ningún artefacto de `org.jetbrains.compose.*`
+    // (confirmado contra Maven Central -- solo `iosArm64`/`iosSimulatorArm64`), baja real de upstream
+    // (Apple discontinuó Macs Intel; Kotlin/Native viene deprecando ese target), no un problema de versión.
+    // `verificacion-ios.yml` corre en `macos-14` (Apple Silicon) y solo ejecutó siempre
+    // `iosSimulatorArm64Test` -- nunca dependió de `iosX64`, así que este cambio no reduce cobertura de CI.
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64(),
     ).forEach { iosTarget ->
@@ -53,6 +60,22 @@ kotlin {
             // `coroutines-extensions`, que el plugin no agrega solo.
             implementation(libs.sqldelight.runtime)
             implementation(libs.sqldelight.coroutines.extensions)
+
+            // Compose Multiplatform (Fase 7, `PROMPT_FASE_07.md §6`). `api`, no `implementation`: el
+            // `@Composable fun App()` raíz de `shared/ui/` y su punto de montaje en `androidApp/MainActivity`
+            // (`setContent { App() }`) necesitan `compose.runtime` en el classpath de compilación de
+            // `androidApp` -- a diferencia de Koin/Ktor (CLAUDE.md §3.4), Compose no es un detalle interno
+            // de `shared/` que la UI deba dejar de ver.
+            api(compose.runtime)
+            api(compose.foundation)
+            api(compose.material3)
+            api(compose.ui)
+            implementation(compose.components.resources)
+            implementation(libs.androidx.lifecycle.viewmodel)
+            implementation(libs.androidx.lifecycle.viewmodel.compose)
+            implementation(libs.navigation.compose)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
