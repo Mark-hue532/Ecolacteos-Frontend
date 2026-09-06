@@ -1,4 +1,3 @@
-```kotlin
 package com.ecolacteos.acopio.di
 
 import app.cash.sqldelight.db.SqlDriver
@@ -135,4 +134,3 @@ object ConnectivityObserverFake : ConnectivityObserver {
     override val conectado: kotlinx.coroutines.flow.Flow<Boolean> =
         MutableStateFlow(true)
 }
-```
