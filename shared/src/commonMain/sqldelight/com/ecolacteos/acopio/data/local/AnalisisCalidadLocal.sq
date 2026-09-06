@@ -64,6 +64,15 @@ ORDER BY creado_en ASC;
 observarTodos:
 SELECT * FROM analisis_calidad_local WHERE usuario_id = :usuarioId ORDER BY creado_en DESC;
 
+-- Fase 6 §6: ver el comentario en RegistroAcopioLocal.sq -- incluye PENDING_DEPENDENCY y FAILED
+-- permanente, a diferencia de obtenerPendientes/obtenerEnEsperaDeDependencia por separado.
+contarPendientes:
+SELECT COUNT(*) FROM analisis_calidad_local WHERE usuario_id = :usuarioId AND sync_status <> 'SYNCED';
+
+-- Fase 6 §6 (LogoutUseCase). Ver el comentario en RegistroAcopioLocal.sq.
+eliminarSincronizadosDeUsuario:
+DELETE FROM analisis_calidad_local WHERE usuario_id = :usuarioId AND sync_status = 'SYNCED';
+
 actualizarEstadoSync:
 UPDATE analisis_calidad_local
 SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :syncError,

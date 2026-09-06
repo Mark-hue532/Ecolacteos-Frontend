@@ -17,6 +17,11 @@ CREATE TABLE ruta_zona_cache (
 eliminarPorZona:
 DELETE FROM ruta_zona_cache WHERE zona_id = :zonaId;
 
+-- Fase 6 §6 (LogoutUseCase, C-09 RNF-12): borrado completo, solo al cerrar sesión -- no confundir con el
+-- reemplazo acotado a una zona de arriba, que sigue siendo la única forma de refrescar en uso normal.
+deleteAll:
+DELETE FROM ruta_zona_cache;
+
 insert:
 INSERT INTO ruta_zona_cache (zona_id, proveedor_id, proveedor_nombre, orden, hora_estimada, actualizado_en)
 VALUES (:zonaId, :proveedorId, :proveedorNombre, :orden, :horaEstimada, :actualizadoEn);

@@ -21,6 +21,7 @@ import com.ecolacteos.acopio.network.ApiClient
 import com.ecolacteos.acopio.network.Endpoints
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -61,6 +62,14 @@ class SyncEngineImpl(
     /** Un solo ciclo a la vez -- ver [ResultadoCiclo.YaEnCurso]. */
     private val enCurso = Mutex()
 
+    /**
+     * Alcance propio del motor, solo para los disparos fire-and-forget de [solicitarSyncOportunista] --
+     * `observarConectividad` sigue recibiendo su `scope` por parámetro (API ya aprobada en Fase 5, no se
+     * toca). Vive tanto como el singleton del motor (Koin), no hay un punto natural de cancelación externo
+     * porque un intento de ciclo siempre termina solo (§6.7, motor interrumpible pero no "colgado").
+     */
+    private val alcancePropio = CoroutineScope(SupervisorJob() + dispatchers.io)
+
     override suspend fun ejecutarCiclo(): ResultadoCiclo {
         if (!enCurso.tryLock()) return ResultadoCiclo.YaEnCurso
         estadoInterno.value = EstadoSync.SINCRONIZANDO
@@ -77,6 +86,10 @@ class SyncEngineImpl(
             .distinctUntilChanged()
             .filter { estaConectado -> estaConectado }
             .collect { ejecutarCiclo() }
+    }
+
+    override fun solicitarSyncOportunista() {
+        alcancePropio.launch { ejecutarCiclo() }
     }
 
     private suspend fun ciclo(): ResultadoCiclo {

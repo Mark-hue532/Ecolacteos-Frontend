@@ -29,6 +29,11 @@ class RutaZonaLocalDataSource(private val queries: RutaZonaCacheQueries) {
 
     fun obtenerPorZona(zonaId: String): List<RutaProveedorOrden> =
         queries.obtenerPorZona(zonaId).executeAsList().map { it.aDominio() }
+
+    /** Logout (Fase 6 §6, C-09 RNF-12): borrado completo de todas las zonas, no acotado como el reemplazo normal. */
+    fun borrarTodo() {
+        queries.deleteAll()
+    }
 }
 
 private fun Ruta_zona_cache.aDominio(): RutaProveedorOrden = RutaProveedorOrden(

@@ -1,10 +1,15 @@
 package com.ecolacteos.acopio.di
 
+import app.cash.sqldelight.db.SqlDriver
 import com.ecolacteos.acopio.core.DispatcherProvider
+import com.ecolacteos.acopio.data.local.AcopioDriverFactory
 import com.ecolacteos.acopio.domain.GestorSesion
+import com.ecolacteos.acopio.domain.VerificadorPendientes
 import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesion
 import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesionFake
 import com.ecolacteos.acopio.network.TokenProvider
+import com.ecolacteos.acopio.synchronization.ConnectivityObserver
+import com.ecolacteos.acopio.synchronization.ConnectivityObserverDePlataforma
 import org.koin.core.context.stopKoin
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
@@ -54,6 +59,10 @@ class CoreModuleTest : KoinTest {
      * lo hace en el suyo (`androidApp/MainActivity.kt`, `di/IosSecurityModule.kt`), ver el comentario en
      * `SecurityModule.kt`. Acá se lo damos con un fake -- lo mismo que hace `GestorSesionTest`, apto para
      * JVM -- para poder correr `checkModules()` sobre el grafo completo (criterio de aceptación §7).
+     *
+     * Este slice deliberadamente **no** incluye `localModule`/`useCaseModule` (Fase 6) -- por eso
+     * `VerificadorPendientes` (que `GestorSesionImpl` necesita) se fakea acá directo, en vez de arrastrar
+     * toda la cadena Repository→LocalDataSource→SqlDriver de `VerificarPendientesUseCase`.
      */
     @Test
     fun `el grafo completo -- core + network + security -- se resuelve con un almacenamiento fake`() {
@@ -62,19 +71,43 @@ class CoreModuleTest : KoinTest {
                 coreModule,
                 networkModule,
                 securityModule,
-                module { single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() } },
+                module {
+                    single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() }
+                    single<VerificadorPendientes> { VerificadorPendientesFakeSinTrabajo }
+                },
             )
         }.checkModules()
     }
 
+    /**
+     * `initKoin()` real (Fase 6 en adelante) wirea también `localModule`/`syncModule`/`repositoryModule`/
+     * `useCaseModule` -- `GestorSesionImpl` pide `VerificadorPendientes`, que ahora resuelve
+     * `VerificarPendientesUseCase` (`useCaseModule`), que a su vez necesita los 4 `Repository` de escritura
+     * y por lo tanto `SqlDriver`/`ConnectivityObserver` (igual que `AlmacenamientoSeguroDeSesion`, son
+     * `expect class` sin constructor común -- cada plataforma real los registra en su propio módulo,
+     * `androidApp/MainActivity.kt`/`di/IosPlatformModule.kt`). Acá se dan con los `actual` de `jvm()`
+     * -- nunca se empaquetan en producción, existen solo para que este test compile y corra.
+     */
     @Test
     fun `initKoin con el almacenamiento fake deja GestorSesion y TokenProvider inyectables`() {
         initKoin {
-            modules(module { single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() } })
+            modules(
+                module {
+                    single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() }
+                    single<SqlDriver> { AcopioDriverFactory().crearDriver() }
+                    single<ConnectivityObserver> { ConnectivityObserverDePlataforma() }
+                },
+            )
         }
         val gestorSesion by inject<GestorSesion>()
         val tokenProvider by inject<TokenProvider>()
         assertNotNull(gestorSesion)
         assertNotNull(tokenProvider)
+    }
+
+    private companion object {
+        val VerificadorPendientesFakeSinTrabajo = object : VerificadorPendientes {
+            override suspend fun hayTrabajoSinSincronizar(): Boolean = false
+        }
     }
 }

@@ -70,6 +70,16 @@ class CatalogosLocalDataSource(
     fun observarProveedores(): Flow<List<Proveedor>> =
         proveedorQueries.selectAll().asFlow().mapToList(dispatchers.io).map { filas -> filas.map { it.aDominio() } }
 
+    /**
+     * Logout (Fase 6 §6, C-09 RNF-12): `proveedor_cache` es una de las 3 tablas con datos personales de
+     * proveedores que `MOBILE_ARCHITECTURE.md §4` exige borrar siempre al cerrar sesión. Reusa el mismo
+     * `deleteAll` que ya existía para el reemplazo de catálogo -- acá no hace falta transacción porque no
+     * se inserta nada después.
+     */
+    fun borrarProveedores() {
+        proveedorQueries.deleteAll()
+    }
+
     fun reemplazarUnidades(filas: List<Unidad>) {
         unidadQueries.transaction {
             unidadQueries.deleteAll()

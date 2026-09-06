@@ -1,6 +1,7 @@
 package com.ecolacteos.acopio.data.local.datasource
 
 import com.ecolacteos.acopio.core.Decimal
+import com.ecolacteos.acopio.data.local.DispatcherProviderDeTest
 import com.ecolacteos.acopio.data.local.crearAcopioDatabase
 import com.ecolacteos.acopio.data.local.crearDriverDeTest
 import com.ecolacteos.acopio.domain.model.AnalisisCalidad
@@ -33,7 +34,7 @@ class RegistroAcopioCacheLocalDataSourceTest {
 
     @Test
     fun `upsert es idempotente -- una segunda llamada con el mismo id reemplaza la fila -- no duplica`() {
-        val ds = RegistroAcopioCacheLocalDataSource(crearAcopioDatabase(crearDriverDeTest()).registroAcopioCacheQueries)
+        val ds = RegistroAcopioCacheLocalDataSource(crearAcopioDatabase(crearDriverDeTest()).registroAcopioCacheQueries, DispatcherProviderDeTest)
         ds.upsert(fila(origen = Origen.RESUMEN))
         ds.upsert(fila(origen = Origen.DETALLE))
 
@@ -42,15 +43,15 @@ class RegistroAcopioCacheLocalDataSourceTest {
 
     @Test
     fun `obtenerPorServerId devuelve null si no existe`() {
-        val ds = RegistroAcopioCacheLocalDataSource(crearAcopioDatabase(crearDriverDeTest()).registroAcopioCacheQueries)
+        val ds = RegistroAcopioCacheLocalDataSource(crearAcopioDatabase(crearDriverDeTest()).registroAcopioCacheQueries, DispatcherProviderDeTest)
         assertNull(ds.obtenerPorServerId("no-existe"))
     }
 
     @Test
     fun `retencion -- no borra una fila referenciada por un AnalisisCalidad todavia no SYNCED`() {
         val database = crearAcopioDatabase(crearDriverDeTest())
-        val cacheDs = RegistroAcopioCacheLocalDataSource(database.registroAcopioCacheQueries)
-        val analisisDs = AnalisisCalidadLocalDataSource(database.analisisCalidadLocalQueries, com.ecolacteos.acopio.data.local.DispatcherProviderDeTest)
+        val cacheDs = RegistroAcopioCacheLocalDataSource(database.registroAcopioCacheQueries, DispatcherProviderDeTest)
+        val analisisDs = AnalisisCalidadLocalDataSource(database.analisisCalidadLocalQueries, DispatcherProviderDeTest)
 
         val fechaVieja = LocalDateTime(2026, 1, 1, 0, 0, 0)
         cacheDs.upsert(fila(id = "referenciado", actualizadoEn = fechaVieja))

@@ -2,8 +2,6 @@ package com.ecolacteos.acopio.di
 
 import com.ecolacteos.acopio.domain.GestorSesion
 import com.ecolacteos.acopio.domain.GestorSesionImpl
-import com.ecolacteos.acopio.domain.VerificadorPendientes
-import com.ecolacteos.acopio.domain.VerificadorPendientesSinImplementar
 import com.ecolacteos.acopio.network.SesionInvalidadaNotifier
 import com.ecolacteos.acopio.network.TokenProvider
 import com.ecolacteos.acopio.network.TokenProviderSobreGestorSesion
@@ -22,14 +20,21 @@ import org.koin.dsl.module
  * [GestorSesionImpl] se registra en Koin en vez de crearse directo porque necesita registrarse a sí mismo
  * en [SesionInvalidadaNotifier] una sola vez, ya con el grafo armado -- ver el comentario de
  * `SesionInvalidadaNotifier.kt` sobre por qué esto no es una dependencia directa en el constructor.
+ *
+ * El binding de `VerificadorPendientes` que este módulo consume (`verificadorPendientes = lazy { get() }`
+ * abajo) ya no se declara acá -- Fase 6 reemplazó el stub (`VerificadorPendientesSinImplementar`) por
+ * `VerificarPendientesUseCase`, registrado en `di/UseCaseModule.kt`. Koin resuelve entre módulos sin
+ * problema (no son namespaces aislados), así que el orden de declaración en `initKoin` no importa.
  */
 val securityModule = module {
-    single<VerificadorPendientes> { VerificadorPendientesSinImplementar() }
     single<GestorSesion> {
         GestorSesionImpl(
             apiClient = get(),
             almacenamiento = get(),
-            verificadorPendientes = get(),
+            // Lazy a propósito -- rompe un ciclo de construcción (VerificarPendientesUseCase necesita los
+            // 4 Repository, que a su vez necesitan este mismo GestorSesion). Ver el comentario en
+            // GestorSesionImpl.kt y en TokenProviderSobreGestorSesion.kt (mismo patrón, mismo motivo).
+            verificadorPendientes = lazy { get() },
         ).also { gestor -> get<SesionInvalidadaNotifier>().registrar { gestor.invalidarSesion() } }
     }
     // gestorSesion es Lazy a proposito -- rompe un ciclo de construccion en el grafo, ver el comentario en

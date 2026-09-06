@@ -99,4 +99,24 @@ interface SyncEngine {
      * para que quien lo lance (Fase 6/9) pueda cancelarlo con su propio ciclo de vida.
      */
     fun observarConectividad(scope: CoroutineScope): Job
+
+    /**
+     * ⚠️ Agregado en Fase 6 -- gap real de Fase 5, no invención de `PROMPT_FASE_06.md`:
+     * `MOBILE_ARCHITECTURE.md §16.1` ya nombraba este método (distinto de [ejecutarCiclo]) desde antes de
+     * que existiera el Sync Engine, y la Fase 5 nunca lo construyó. Se agrega ahora tal cual lo describe
+     * §16.1 ("intenta ya mismo si hay red; si no, espera §6.5"), sin tocar [ejecutarCiclo] ni
+     * [observarConectividad].
+     *
+     * Dispara un intento de ciclo **sin bloquear al llamador** -- es lo que `RegistroAcopioRepository.crear()`
+     * (Fase 6 §4.1) llama al final de guardar localmente. Nunca usa [ejecutarCiclo] directo ahí: eso
+     * suspendería la escritura local hasta que el ciclo entero (los 4 recursos + catálogos) termine, y la
+     * gracia de offline-first es que la UI vea el dato de inmediato sin esperar red.
+     *
+     * Si falla por falta de conectividad, la fila queda `FAILED`-transitorio con backoff igual que
+     * cualquier otro intento (§6.3) -- no hay una lógica especial de "esperar conexión" acá: el próximo
+     * disparo (por reconexión vía [observarConectividad], o el próximo `crear()`) la retoma. Si ya hay un
+     * ciclo en curso, no hace nada (mismo `Mutex` que hace que [ejecutarCiclo] devuelva
+     * [ResultadoCiclo.YaEnCurso]) -- evita mandar el mismo lote dos veces en paralelo.
+     */
+    fun solicitarSyncOportunista()
 }

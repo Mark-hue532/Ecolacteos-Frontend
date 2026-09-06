@@ -48,14 +48,35 @@ class GestorSesionFake(private var sesionFija: Sesion? = SESION_DE_PRUEBA) : Ges
         flujo.value = null
     }
 
+    /**
+     * Cambia la sesión activa sin pasar por [iniciarSesion] (que este fake no implementa) -- exclusivo del
+     * escenario multiusuario de `PROMPT_FASE_06.md §6` punto 3: "usuario A con una fila PENDING, usuario B
+     * loguea en el mismo dispositivo". Emite por [sesion] igual que un login real, para que los `Flow`
+     * escopeados por `flatMapLatest` (`RegistroAcopioRepositoryImpl` et al.) reaccionen.
+     */
+    fun loguearComo(sesion: Sesion) {
+        sesionFija = sesion
+        flujo.value = sesion
+    }
+
     companion object {
         const val USUARIO_ID = "usuario-1"
+        const val USUARIO_ID_B = "usuario-2"
 
         val SESION_DE_PRUEBA = Sesion(
             token = "token-de-prueba",
             usuarioId = USUARIO_ID,
             rol = Rol.ACOPIADOR,
             nombre = "Ana",
+            expiraEnEpochMillis = Long.MAX_VALUE,
+        )
+
+        /** Segunda sesión del mismo dispositivo (`PROMPT_FASE_06.md §6` punto 3, escenario multiusuario). */
+        val SESION_DE_PRUEBA_B = Sesion(
+            token = "token-de-prueba-b",
+            usuarioId = USUARIO_ID_B,
+            rol = Rol.ACOPIADOR,
+            nombre = "Beto",
             expiraEnEpochMillis = Long.MAX_VALUE,
         )
     }

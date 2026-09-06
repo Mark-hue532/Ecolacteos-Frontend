@@ -95,6 +95,22 @@ class LoteProduccionLocalDataSource(
     fun eliminarSincronizadosAntesDe(fecha: LocalDateTime) {
         queries.eliminarSincronizadosAntesDe(fecha)
     }
+
+    /** Ver [RegistroAcopioLocalDataSource.contarPendientes]. Fase 6 §6. */
+    fun contarPendientes(usuarioId: String): Long = queries.contarPendientes(usuarioId).executeAsOne()
+
+    /**
+     * Ver [RegistroAcopioLocalDataSource.eliminarSincronizadosDeUsuario]. A diferencia de las otras 3
+     * tablas de escritura, acá hay que borrar primero las filas hijas en `lote_produccion_registro_local`
+     * (sin `usuario_id` propio, no se puede filtrar directo) antes de borrar el lote, o quedan huérfanas.
+     */
+    fun eliminarSincronizadosDeUsuario(usuarioId: String) {
+        queries.transaction {
+            queries.obtenerUuidsSincronizadosDeUsuario(usuarioId).executeAsList()
+                .forEach { uuidCliente -> registroQueries.eliminarPorLote(uuidCliente) }
+            queries.eliminarSincronizadosDeUsuario(usuarioId)
+        }
+    }
 }
 
 private fun Lote_produccion_local.aDominio(): LoteProduccion = LoteProduccion(

@@ -53,6 +53,19 @@ ORDER BY creado_en ASC;
 observarTodos:
 SELECT * FROM lote_produccion_local WHERE usuario_id = :usuarioId ORDER BY fecha DESC;
 
+-- Fase 6 §6: ver el comentario en RegistroAcopioLocal.sq.
+contarPendientes:
+SELECT COUNT(*) FROM lote_produccion_local WHERE usuario_id = :usuarioId AND sync_status <> 'SYNCED';
+
+-- Fase 6 §6 (LogoutUseCase). uuid_cliente de los lotes de este usuario que ya están SYNCED -- el
+-- LocalDataSource los usa para primero borrar sus filas hijas en lote_produccion_registro_local
+-- (que no tiene usuario_id propio, así que no se puede filtrar directo) antes de borrar el lote.
+obtenerUuidsSincronizadosDeUsuario:
+SELECT uuid_cliente FROM lote_produccion_local WHERE usuario_id = :usuarioId AND sync_status = 'SYNCED';
+
+eliminarSincronizadosDeUsuario:
+DELETE FROM lote_produccion_local WHERE usuario_id = :usuarioId AND sync_status = 'SYNCED';
+
 actualizarEstadoSync:
 UPDATE lote_produccion_local
 SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :syncError,

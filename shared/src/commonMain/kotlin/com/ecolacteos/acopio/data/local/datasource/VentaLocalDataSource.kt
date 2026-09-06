@@ -69,6 +69,14 @@ class VentaLocalDataSource(
     fun eliminarSincronizadosAntesDe(fecha: LocalDateTime) {
         queries.eliminarSincronizadosAntesDe(fecha)
     }
+
+    /** Ver [RegistroAcopioLocalDataSource.contarPendientes]. Fase 6 §6. */
+    fun contarPendientes(usuarioId: String): Long = queries.contarPendientes(usuarioId).executeAsOne()
+
+    /** Ver [RegistroAcopioLocalDataSource.eliminarSincronizadosDeUsuario]. Fase 6 §6. */
+    fun eliminarSincronizadosDeUsuario(usuarioId: String) {
+        queries.eliminarSincronizadosDeUsuario(usuarioId)
+    }
 }
 
 private fun Venta_local.aDominio(): Venta = Venta(

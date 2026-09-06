@@ -30,6 +30,20 @@ INSERT OR REPLACE INTO registro_acopio_cache (
 obtenerPorServerId:
 SELECT * FROM registro_acopio_cache WHERE id = :id;
 
+-- Fase 6 (§16.4): para RegistroAcopioRepository.observarHistorialProveedor -- registros AJENOS de un
+-- proveedor puntual, para combinar con registro_acopio_local (propios). Ver la nota de deduplicación de
+-- DATA-013/DATA-014 en el checkpoint: puede mostrar un registro duplicado si el mismo dato está en las
+-- dos tablas, limitación conocida y aceptada, no se soluciona acá.
+obtenerPorProveedor:
+SELECT * FROM registro_acopio_cache WHERE proveedor_id = :proveedorId ORDER BY fecha_hora DESC;
+
+-- Fase 6 §6 (LogoutUseCase, C-09 RNF-12): esta SÍ es la excepción a "nunca borrado masivo" de la trampa
+-- #4 de Fase 4 -- ese borrado masivo bloqueado es sobre un CICLO DE CATÁLOGOS (rompería la resolución de
+-- padres ajenos en pleno sync), no sobre un logout. `MOBILE_ARCHITECTURE.md §4` es explícito: las 3 tablas
+-- con datos personales de proveedores (incluida esta) se borran siempre al cerrar sesión.
+deleteAll:
+DELETE FROM registro_acopio_cache;
+
 -- Retención C-04 (MOBILE_ARCHITECTURE.md §11.4, Fase 9 -- se escribe la query, nadie la llama todavía):
 -- 30 días desde actualizado_en, SALVO las filas referenciadas por un hijo local que no esté SYNCED todavía
 -- (lote_produccion_registro_local no tiene sync_status propio: hereda el de su lote_produccion_local padre).

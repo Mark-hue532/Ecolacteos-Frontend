@@ -55,6 +55,19 @@ class RegistroAcopioLocalDataSource(
         queries.observarTodos(usuarioId).asFlow().mapToList(dispatchers.io)
             .map { filas -> filas.map { it.aDominio() } }
 
+    /** Historial de un proveedor puntual (`§16.4`, Fase 6) -- sin filtrar por usuario, ver el `.sq`. */
+    fun observarPorProveedor(proveedorId: String): Flow<List<RegistroAcopio>> =
+        queries.observarPorProveedor(proveedorId).asFlow().mapToList(dispatchers.io)
+            .map { filas -> filas.map { it.aDominio() } }
+
+    /** Cuenta TODO lo no-`SYNCED` (`CLAUDE.md §3.6`), no solo lo enviable ya mismo. Fase 6 §6. */
+    fun contarPendientes(usuarioId: String): Long = queries.contarPendientes(usuarioId).executeAsOne()
+
+    /** Logout con 0 pendientes (Fase 6 §6): borra el historial ya confirmado de este usuario. */
+    fun eliminarSincronizadosDeUsuario(usuarioId: String) {
+        queries.eliminarSincronizadosDeUsuario(usuarioId)
+    }
+
     fun actualizarEstadoSync(
         uuidCliente: String,
         status: SyncStatus,

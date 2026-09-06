@@ -17,10 +17,20 @@ import kotlin.time.Clock
 /** Umbral de refresh proactivo (`MOBILE_ARCHITECTURE.md §4`, `PROMPT_FASE_03.md §5`). */
 private const val UMBRAL_REFRESH_MILLIS = 30 * 60 * 1000L
 
+/**
+ * [verificadorPendientes] es `Lazy` desde Fase 6, **a propósito** -- mismo motivo exacto que
+ * [com.ecolacteos.acopio.network.TokenProviderSobreGestorSesion]: `VerificadorPendientes` ahora lo
+ * implementa `VerificarPendientesUseCase` (`domain/usecase/`), que necesita los 4 `Repository` de
+ * escritura, y cada uno de esos `Repository` necesita este mismo `GestorSesion` para resolver el
+ * `usuarioId` de la sesión activa. Resolver `verificadorPendientes` de manera *ansiosa* en el constructor
+ * reproduce el ciclo (`StackOverflowError` en Koin al armar el grafo, se ve en `CoreModuleTest`). Con
+ * `Lazy`, recién se resuelve la primera vez que [cerrarSesion] se llama de verdad, momento en el que todo
+ * el grafo ya terminó de armarse.
+ */
 class GestorSesionImpl(
     private val apiClient: ApiClient,
     private val almacenamiento: AlmacenamientoSeguroDeSesion,
-    private val verificadorPendientes: VerificadorPendientes,
+    private val verificadorPendientes: Lazy<VerificadorPendientes>,
     private val reloj: Clock = Clock.System,
 ) : GestorSesion {
 
@@ -77,7 +87,7 @@ class GestorSesionImpl(
     }
 
     override suspend fun cerrarSesion(): ResultadoCierreSesion {
-        if (verificadorPendientes.hayTrabajoSinSincronizar()) return ResultadoCierreSesion.BLOQUEADA_POR_PENDIENTES
+        if (verificadorPendientes.value.hayTrabajoSinSincronizar()) return ResultadoCierreSesion.BLOQUEADA_POR_PENDIENTES
         limpiar()
         return ResultadoCierreSesion.CERRADA
     }

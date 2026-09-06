@@ -50,6 +50,14 @@ ORDER BY creado_en ASC;
 observarTodos:
 SELECT * FROM venta_local WHERE usuario_id = :usuarioId ORDER BY fecha DESC;
 
+-- Fase 6 §6: ver el comentario en RegistroAcopioLocal.sq.
+contarPendientes:
+SELECT COUNT(*) FROM venta_local WHERE usuario_id = :usuarioId AND sync_status <> 'SYNCED';
+
+-- Fase 6 §6 (LogoutUseCase). Ver el comentario en RegistroAcopioLocal.sq.
+eliminarSincronizadosDeUsuario:
+DELETE FROM venta_local WHERE usuario_id = :usuarioId AND sync_status = 'SYNCED';
+
 actualizarEstadoSync:
 UPDATE venta_local
 SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :syncError,

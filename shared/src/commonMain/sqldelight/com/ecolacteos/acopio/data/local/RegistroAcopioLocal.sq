@@ -57,6 +57,24 @@ ORDER BY creado_en ASC;
 observarTodos:
 SELECT * FROM registro_acopio_local WHERE usuario_id = :usuarioId ORDER BY fecha_hora DESC;
 
+-- Fase 6 (§16.4): historial de un proveedor puntual, para combinar con registro_acopio_cache
+-- (RegistroAcopioRepository.observarHistorialProveedor). Sin filtrar por usuario_id a propósito: el
+-- historial de un proveedor es el mismo para cualquier usuario del dispositivo que lo consulte.
+observarPorProveedor:
+SELECT * FROM registro_acopio_local WHERE proveedor_id = :proveedorId ORDER BY fecha_hora DESC;
+
+-- Fase 6 §6: cuenta TODO lo no-SYNCED de un usuario, sin importar backoff/timing -- a diferencia de
+-- obtenerPendientes (candidatas a enviar YA), esto incluye también el FAILED permanente (CLAUDE.md §3.6:
+-- "sync_status distinto de SYNCED" es exactamente el criterio de qué bloquea logout).
+contarPendientes:
+SELECT COUNT(*) FROM registro_acopio_local WHERE usuario_id = :usuarioId AND sync_status <> 'SYNCED';
+
+-- Fase 6 §6 (LogoutUseCase, conteo ya en 0): limpia el historial ya confirmado de ESTE usuario. A
+-- diferencia de eliminarSincronizadosAntesDe (retención global, Fase 9, sin importar usuario_id), esto
+-- se dispara al cerrar sesión y solo toca las filas del usuario que se está deslogueando.
+eliminarSincronizadosDeUsuario:
+DELETE FROM registro_acopio_local WHERE usuario_id = :usuarioId AND sync_status = 'SYNCED';
+
 actualizarEstadoSync:
 UPDATE registro_acopio_local
 SET sync_status = :syncStatus, sync_attempts = :syncAttempts, sync_error = :syncError,

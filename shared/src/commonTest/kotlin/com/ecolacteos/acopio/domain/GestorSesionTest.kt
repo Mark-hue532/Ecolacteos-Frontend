@@ -52,9 +52,18 @@ class GestorSesionTest {
         override fun now(): Instant = ahora
     }
 
+    /**
+     * Fake local a este test -- el stub de producción `VerificadorPendientesSinImplementar` se eliminó en
+     * Fase 6 (reemplazado por `VerificarPendientesUseCase`). Estos tests de login/refresh no ejercitan la
+     * política de logout, así que "nunca hay pendientes" sigue siendo el default correcto acá.
+     */
+    private object VerificadorPendientesFakeSinTrabajo : VerificadorPendientes {
+        override suspend fun hayTrabajoSinSincronizar(): Boolean = false
+    }
+
     private fun construir(
         ahora: Instant = Instant.fromEpochMilliseconds(0),
-        verificadorPendientes: VerificadorPendientes = VerificadorPendientesSinImplementar(),
+        verificadorPendientes: VerificadorPendientes = VerificadorPendientesFakeSinTrabajo,
         almacenamiento: AlmacenamientoSeguroDeSesionFake = AlmacenamientoSeguroDeSesionFake(),
         handler: MockRequestHandler,
     ): Pair<GestorSesionImpl, RelojFake> {
@@ -64,7 +73,7 @@ class GestorSesionTest {
         }
         val apiClient = ApiClient(httpClient, apiConfig, SesionInvalidadaNotifier())
         val reloj = RelojFake(ahora)
-        return GestorSesionImpl(apiClient, almacenamiento, verificadorPendientes, reloj) to reloj
+        return GestorSesionImpl(apiClient, almacenamiento, lazy { verificadorPendientes }, reloj) to reloj
     }
 
     @Test
