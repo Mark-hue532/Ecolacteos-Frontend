@@ -2,14 +2,15 @@ package com.ecolacteos.acopio.di
 
 import app.cash.sqldelight.db.SqlDriver
 import com.ecolacteos.acopio.core.DispatcherProvider
-import com.ecolacteos.acopio.data.local.AcopioDriverFactory
+import com.ecolacteos.acopio.data.local.crearDriverDeTest
 import com.ecolacteos.acopio.domain.GestorSesion
 import com.ecolacteos.acopio.domain.VerificadorPendientes
+import com.ecolacteos.acopio.network.TokenProvider
 import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesion
 import com.ecolacteos.acopio.security.AlmacenamientoSeguroDeSesionFake
-import com.ecolacteos.acopio.network.TokenProvider
 import com.ecolacteos.acopio.synchronization.ConnectivityObserver
-import com.ecolacteos.acopio.synchronization.ConnectivityObserverDePlataforma
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.context.stopKoin
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
@@ -83,10 +84,7 @@ class CoreModuleTest : KoinTest {
      * `initKoin()` real (Fase 6 en adelante) wirea también `localModule`/`syncModule`/`repositoryModule`/
      * `useCaseModule` -- `GestorSesionImpl` pide `VerificadorPendientes`, que ahora resuelve
      * `VerificarPendientesUseCase` (`useCaseModule`), que a su vez necesita los 4 `Repository` de escritura
-     * y por lo tanto `SqlDriver`/`ConnectivityObserver` (igual que `AlmacenamientoSeguroDeSesion`, son
-     * `expect class` sin constructor común -- cada plataforma real los registra en su propio módulo,
-     * `androidApp/MainActivity.kt`/`di/IosPlatformModule.kt`). Acá se dan con los `actual` de `jvm()`
-     * -- nunca se empaquetan en producción, existen solo para que este test compile y corra.
+     * y por lo tanto `SqlDriver`/`ConnectivityObserver`. Usamos fakes agnósticos para no depender de Context de Android.
      */
     @Test
     fun `initKoin con el almacenamiento fake deja GestorSesion y TokenProvider inyectables`() {
@@ -94,8 +92,8 @@ class CoreModuleTest : KoinTest {
             modules(
                 module {
                     single<AlmacenamientoSeguroDeSesion> { AlmacenamientoSeguroDeSesionFake() }
-                    single<SqlDriver> { AcopioDriverFactory().crearDriver() }
-                    single<ConnectivityObserver> { ConnectivityObserverDePlataforma() }
+                    single<SqlDriver> { crearDriverDeTest() }
+                    single<ConnectivityObserver> { ConnectivityObserverFake }
                 },
             )
         }
@@ -108,6 +106,10 @@ class CoreModuleTest : KoinTest {
     private companion object {
         val VerificadorPendientesFakeSinTrabajo = object : VerificadorPendientes {
             override suspend fun hayTrabajoSinSincronizar(): Boolean = false
+        }
+
+        object ConnectivityObserverFake : ConnectivityObserver {
+            override val estaConectado: StateFlow<Boolean> = MutableStateFlow(true)
         }
     }
 }
