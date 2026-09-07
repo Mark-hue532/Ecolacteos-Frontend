@@ -29,7 +29,8 @@ androidxActivityCompose = "1.11.0"
 # 2.9.6 es la versión real que exige `navigation-compose 2.9.0-alpha16` de este mismo Compose Multiplatform
 # -- confirmado con un build real, no supuesto (ver checkpoint de la Fase 7, sección "Decisiones tomadas").
 androidxLifecycleViewmodelCompose = "2.9.6"
-navigationCompose = "2.9.0-alpha16"
+# Cambiar de 2.8.0-alpha10 (inexistente) a 2.8.0-beta02 o 2.9.0-alpha12
+navigationCompose = "2.8.0-beta02"
 koinCompose = "4.2.2"
 
 [libraries]
