@@ -16,6 +16,10 @@ import com.ecolacteos.acopio.ui.screens.acopio.EscanearQrScreen
 import com.ecolacteos.acopio.ui.screens.acopio.HistorialProveedorScreen
 import com.ecolacteos.acopio.ui.screens.acopio.RegistrarAcopioScreen
 import com.ecolacteos.acopio.ui.screens.acopio.RutaDelDiaScreen
+import com.ecolacteos.acopio.ui.screens.calidad.DetalleAnalisisScreen
+import com.ecolacteos.acopio.ui.screens.calidad.HomeCalidadScreen
+import com.ecolacteos.acopio.ui.screens.calidad.RegistrarAnalisisScreen
+import com.ecolacteos.acopio.ui.screens.calidad.SeleccionarRegistroAnalisisScreen
 import com.ecolacteos.acopio.ui.screens.comun.AjustesScreen
 import com.ecolacteos.acopio.ui.screens.comun.ComunicadosScreen
 import com.ecolacteos.acopio.ui.screens.comun.EstadoSincronizacionScreen
@@ -68,6 +72,7 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
                 onNavegarAEstadoSincronizacion = { navController.navigate(Rutas.ESTADO_SINCRONIZACION) },
                 onNavegarARutaAcopio = { navController.navigate(Rutas.ACOPIO_RUTA) },
                 onNavegarAEscanearQrAcopio = { navController.navigate(Rutas.ACOPIO_ESCANEAR) },
+                onNavegarAHomeCalidad = { navController.navigate(Rutas.CALIDAD_HOME) },
                 onNavegarAPendientes = { navController.navigate(Rutas.PENDIENTES) },
                 onNavegarAComunicados = { navController.navigate(Rutas.COMUNICADOS) },
                 onNavegarAAjustes = { navController.navigate(Rutas.AJUSTES) },
@@ -182,6 +187,56 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
         ) { backStackEntry ->
             val comunicadoId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_COMUNICADO_ID) }.orEmpty()
             ConfirmarComunicadoScreen(comunicadoId = comunicadoId, onConfirmadoConExito = { navController.popBackStack() })
+        }
+
+        // Fase 8C -- CALIDAD (MOBILE_SCREENS.md §6): C-01..C-04. C-05..C-08 van en 8E.
+        composable(Rutas.CALIDAD_HOME) {
+            HomeCalidadScreen(
+                onNavegarADetalleAnalisis = { id -> navController.navigate(Rutas.calidadDetalleAnalisis(id)) },
+                onNavegarASeleccionarRegistro = { proveedorId -> navController.navigate(Rutas.calidadSeleccionarRegistro(proveedorId)) },
+                onNavegarABuscarProveedor = { navController.navigate(Rutas.CALIDAD_BUSCAR_PROVEEDOR) },
+            )
+        }
+        // Mismo `BuscarProveedorScreen`/`BuscarProveedorViewModel` de `A-03` (`§0` del prompt: la máquina de
+        // búsqueda de proveedor ya existe, no se reimplementa) -- solo cambia adónde navega al elegir uno.
+        composable(Rutas.CALIDAD_BUSCAR_PROVEEDOR) {
+            BuscarProveedorScreen(
+                onNavegarARegistrar = { proveedorId -> navController.navigate(Rutas.calidadSeleccionarRegistro(proveedorId)) },
+            )
+        }
+        composable(
+            route = Rutas.CALIDAD_SELECCIONAR_REGISTRO,
+            arguments = listOf(navArgument(Rutas.ARG_PROVEEDOR_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val proveedorId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_PROVEEDOR_ID) }.orEmpty()
+            SeleccionarRegistroAnalisisScreen(
+                proveedorId = proveedorId,
+                onNavegarACapturar = { uuidCliente, serverId ->
+                    navController.navigate(Rutas.calidadRegistrarAnalisis(uuidCliente, serverId))
+                },
+            )
+        }
+        composable(
+            route = Rutas.CALIDAD_REGISTRAR_ANALISIS,
+            arguments = listOf(
+                navArgument(Rutas.ARG_REGISTRO_ACOPIO_UUID_CLIENTE) { type = NavType.StringType; nullable = true; defaultValue = null },
+                navArgument(Rutas.ARG_REGISTRO_ACOPIO_SERVER_ID) { type = NavType.StringType; nullable = true; defaultValue = null },
+            ),
+        ) { backStackEntry ->
+            val uuidCliente = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ACOPIO_UUID_CLIENTE) }
+            val serverId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ACOPIO_SERVER_ID) }
+            RegistrarAnalisisScreen(
+                registroAcopioUuidCliente = uuidCliente,
+                registroAcopioServerId = serverId,
+                onGuardadoConExito = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Rutas.CALIDAD_DETALLE_ANALISIS,
+            arguments = listOf(navArgument(Rutas.ARG_REGISTRO_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
+            DetalleAnalisisScreen(registroAcopioId = id)
         }
     }
 }

@@ -71,6 +71,14 @@ interface RegistroAcopioRepository {
     fun observarHistorialProveedor(proveedorId: String): Flow<List<ItemHistorialRegistroAcopio>>
 
     /**
+     * `C-01` (Fase 8C, `MOBILE_SCREENS.md §6`): todas las entregas AJENAS cacheadas hasta ahora, sin
+     * filtrar por proveedor -- a diferencia de [observarHistorialProveedor], acá no hay un proveedor de
+     * partida (Home calidad todavía no sabe cuál). Solo `registro_acopio_cache`, tal como fija la fuente
+     * de `C-01` en el documento: las entregas **propias** de este dispositivo no entran acá.
+     */
+    fun observarEntregasCacheadas(): Flow<List<RegistroAcopioReferencia>>
+
+    /**
      * Población on-demand de `registro_acopio_cache` para armar el picker "elegí el registro padre"
      * cuando es ajeno (`§4.2` caso 3, `§5` fila `ObtenerRegistrosDeProveedorUseCase`). Clasificación
      * ONLINE+CACHE (`§5` de la arquitectura): intenta refrescar desde red y cachear; si falla, degrada a
@@ -164,6 +172,8 @@ class RegistroAcopioRepositoryImpl(
             propios.map { ItemHistorialRegistroAcopio.Propio(it) } +
                 ajenos.filterNot { it.id in idsPropiosConSeverId }.map { ItemHistorialRegistroAcopio.Ajeno(it) }
         }
+
+    override fun observarEntregasCacheadas(): Flow<List<RegistroAcopioReferencia>> = cacheLocal.observarTodos()
 
     override suspend fun obtenerRegistrosDeProveedor(proveedorId: String): List<RegistroAcopioReferencia> {
         when (val respuesta = apiClient.get<List<RegistroAcopioResumenResponse>>(Endpoints.registrosAcopioPorProveedor(proveedorId))) {

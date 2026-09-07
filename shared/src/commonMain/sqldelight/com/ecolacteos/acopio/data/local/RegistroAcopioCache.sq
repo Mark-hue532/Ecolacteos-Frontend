@@ -37,6 +37,11 @@ SELECT * FROM registro_acopio_cache WHERE id = :id;
 obtenerPorProveedor:
 SELECT * FROM registro_acopio_cache WHERE proveedor_id = :proveedorId ORDER BY fecha_hora DESC;
 
+-- Fase 8C (`C-01`, `MOBILE_SCREENS.md §6`): entregas cacheadas de TODOS los proveedores, sin filtrar --
+-- Home calidad no parte de un proveedor puntual como A-05. Sin paginación (`CLAUDE.md §3.3`).
+observarTodos:
+SELECT * FROM registro_acopio_cache ORDER BY fecha_hora DESC;
+
 -- Fase 6 §6 (LogoutUseCase, C-09 RNF-12): esta SÍ es la excepción a "nunca borrado masivo" de la trampa
 -- #4 de Fase 4 -- ese borrado masivo bloqueado es sobre un CICLO DE CATÁLOGOS (rompería la resolución de
 -- padres ajenos en pleno sync), no sobre un logout. `MOBILE_ARCHITECTURE.md §4` es explícito: las 3 tablas

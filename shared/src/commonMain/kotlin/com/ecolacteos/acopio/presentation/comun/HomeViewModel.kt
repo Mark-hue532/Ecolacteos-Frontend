@@ -29,7 +29,7 @@ data class HomeUiState(
     val nombre: String = "",
     val rol: Rol = Rol.UNKNOWN,
     val etiquetaAccionPrincipal: String = "",
-    /** `null` -> sin acceso secundario para este rol (ej. CALIDAD/PRODUCCION/RECEPCION todavía, Fase 8C-8E). */
+    /** `null` -> sin acceso secundario para este rol (ej. PRODUCCION/RECEPCION todavía, Fase 8D-8E). */
     val etiquetaAccesoSecundario: String? = null,
     val accionPrincipalDisponible: Boolean = false,
     val resumenSync: ResumenSync = ResumenSync(),
@@ -67,6 +67,9 @@ sealed interface HomeEffect {
     // Fase 8A -- ACOPIADOR (MOBILE_SCREENS.md §5).
     data object NavegarARutaAcopio : HomeEffect
     data object NavegarAEscanearQrAcopio : HomeEffect
+
+    // Fase 8C -- CALIDAD (MOBILE_SCREENS.md §6).
+    data object NavegarAHomeCalidad : HomeEffect
 
     // Fase 8B (PROMPT_FASE_08B.md §4).
     /** Ruta directa a `S-05` vía [IndicadorSync][com.ecolacteos.acopio.ui.components.IndicadorSync] (`§2.1` regla 4). */
@@ -120,6 +123,7 @@ class HomeViewModel(
                 when (_uiState.value.rol) {
                     Rol.VENTAS -> HomeEffect.NavegarARegistrarVenta
                     Rol.ACOPIADOR -> HomeEffect.NavegarARutaAcopio
+                    Rol.CALIDAD -> HomeEffect.NavegarAHomeCalidad
                     else -> null
                 },
             )
@@ -157,6 +161,7 @@ class HomeViewModel(
             etiquetaAccionPrincipal = when (rol) {
                 Rol.VENTAS -> "Registrar venta"
                 Rol.ACOPIADOR -> "Ver mi ruta"
+                Rol.CALIDAD -> "Analizar entregas"
                 else -> ""
             },
             etiquetaAccesoSecundario = when (rol) {
@@ -164,7 +169,7 @@ class HomeViewModel(
                 Rol.ACOPIADOR -> "Escanear QR"
                 else -> null
             },
-            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR,
+            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR || rol == Rol.CALIDAD,
         )
     }
 }

@@ -135,7 +135,7 @@ class FixtureRepositorios(
     val borradorFormularioRepository: BorradorFormularioRepository =
         BorradorFormularioRepositoryImpl(borradorFormularioLocal, reloj, zona)
     val analisisCalidadRepository: AnalisisCalidadRepository =
-        AnalisisCalidadRepositoryImpl(gestorSesion, analisisLocal, resolutor, syncEngineParaRepositorios, reloj, zona)
+        AnalisisCalidadRepositoryImpl(gestorSesion, analisisLocal, resolutor, syncEngineParaRepositorios, apiClient, reloj, zona)
     val loteProduccionRepository: LoteProduccionRepository =
         LoteProduccionRepositoryImpl(gestorSesion, lotesLocal, resolutor, syncEngineParaRepositorios, reloj, zona)
     val catalogoRepository: CatalogoRepository =

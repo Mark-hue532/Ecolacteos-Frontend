@@ -38,6 +38,7 @@ fun HomeScreen(
     onNavegarAEstadoSincronizacion: () -> Unit,
     onNavegarARutaAcopio: () -> Unit,
     onNavegarAEscanearQrAcopio: () -> Unit,
+    onNavegarAHomeCalidad: () -> Unit,
     onNavegarAPendientes: () -> Unit,
     onNavegarAComunicados: () -> Unit,
     onNavegarAAjustes: () -> Unit,
@@ -53,6 +54,7 @@ fun HomeScreen(
                 HomeEffect.NavegarAEstadoSincronizacion -> onNavegarAEstadoSincronizacion()
                 HomeEffect.NavegarARutaAcopio -> onNavegarARutaAcopio()
                 HomeEffect.NavegarAEscanearQrAcopio -> onNavegarAEscanearQrAcopio()
+                HomeEffect.NavegarAHomeCalidad -> onNavegarAHomeCalidad()
                 HomeEffect.NavegarAPendientes -> onNavegarAPendientes()
                 HomeEffect.NavegarAComunicados -> onNavegarAComunicados()
                 HomeEffect.NavegarAAjustes -> onNavegarAAjustes()

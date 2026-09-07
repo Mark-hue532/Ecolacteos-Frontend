@@ -7,6 +7,10 @@ import com.ecolacteos.acopio.presentation.acopio.EscanearQrViewModel
 import com.ecolacteos.acopio.presentation.acopio.HistorialProveedorViewModel
 import com.ecolacteos.acopio.presentation.acopio.RegistrarAcopioViewModel
 import com.ecolacteos.acopio.presentation.acopio.RutaDelDiaViewModel
+import com.ecolacteos.acopio.presentation.calidad.DetalleAnalisisCalidadViewModel
+import com.ecolacteos.acopio.presentation.calidad.HomeCalidadViewModel
+import com.ecolacteos.acopio.presentation.calidad.RegistrarAnalisisViewModel
+import com.ecolacteos.acopio.presentation.calidad.SeleccionarRegistroAnalisisViewModel
 import com.ecolacteos.acopio.presentation.comun.AjustesViewModel
 import com.ecolacteos.acopio.presentation.comun.ComunicadosViewModel
 import com.ecolacteos.acopio.presentation.comun.ConfirmacionesRecientesEnMemoria
@@ -131,6 +135,38 @@ val presentationModule = module {
             observarCatalogosUseCase = get(),
             observarConectividadUseCase = get(),
             confirmacionesRecientesEnMemoria = get(),
+        )
+    }
+
+    // Fase 8C -- CALIDAD (PROMPT_FASE_08C.md §2): las 4 pantallas C-01..C-04.
+    viewModel {
+        HomeCalidadViewModel(
+            observarEntregasConEstadoAnalisisUseCase = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        SeleccionarRegistroAnalisisViewModel(
+            proveedorId = params.get(),
+            clasificarPadresRegistroAcopioUseCase = get(),
+            obtenerRegistrosDeProveedorUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        RegistrarAnalisisViewModel(
+            registroAcopioUuidCliente = params.get<String?>(0),
+            registroAcopioServerId = params.get<String?>(1),
+            crearAnalisisCalidadUseCase = get(),
+            observarConectividadUseCase = get(),
+            borradorFormularioUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        DetalleAnalisisCalidadViewModel(
+            registroAcopioId = params.get(),
+            obtenerDetalleAnalisisCalidadUseCase = get(),
         )
     }
 }

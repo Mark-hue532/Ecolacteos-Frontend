@@ -60,4 +60,34 @@ object Rutas {
     private const val ACOPIO_CONFIRMAR_COMUNICADO_BASE = "acopio_confirmar_comunicado"
     const val ACOPIO_CONFIRMAR_COMUNICADO = "$ACOPIO_CONFIRMAR_COMUNICADO_BASE/{$ARG_COMUNICADO_ID}"
     fun acopioConfirmarComunicado(comunicadoId: String) = "$ACOPIO_CONFIRMAR_COMUNICADO_BASE/$comunicadoId"
+
+    // Fase 8C -- CALIDAD (MOBILE_SCREENS.md §6): C-01..C-04. C-05..C-08 van en 8E.
+    const val CALIDAD_HOME = "calidad_home"
+
+    // `C-02` necesita un proveedor de partida -- reusa `BuscarProveedorScreen` (`A-03`) con un destino
+    // propio, ver `PROMPT_FASE_08C.md §4`.
+    const val CALIDAD_BUSCAR_PROVEEDOR = "calidad_buscar_proveedor"
+
+    private const val CALIDAD_SELECCIONAR_REGISTRO_BASE = "calidad_seleccionar_registro"
+    const val CALIDAD_SELECCIONAR_REGISTRO = "$CALIDAD_SELECCIONAR_REGISTRO_BASE/{$ARG_PROVEEDOR_ID}"
+    fun calidadSeleccionarRegistro(proveedorId: String) = "$CALIDAD_SELECCIONAR_REGISTRO_BASE/$proveedorId"
+
+    // `C-03` -- exactamente uno de los dos query param no nulo (mismo invariante que `AnalisisCalidad`).
+    const val ARG_REGISTRO_ACOPIO_UUID_CLIENTE = "registroAcopioUuidCliente"
+    const val ARG_REGISTRO_ACOPIO_SERVER_ID = "registroAcopioServerId"
+    private const val CALIDAD_REGISTRAR_ANALISIS_BASE = "calidad_registrar_analisis"
+    const val CALIDAD_REGISTRAR_ANALISIS =
+        "$CALIDAD_REGISTRAR_ANALISIS_BASE?$ARG_REGISTRO_ACOPIO_UUID_CLIENTE={$ARG_REGISTRO_ACOPIO_UUID_CLIENTE}" +
+            "&$ARG_REGISTRO_ACOPIO_SERVER_ID={$ARG_REGISTRO_ACOPIO_SERVER_ID}"
+    fun calidadRegistrarAnalisis(uuidCliente: String?, serverId: String?): String {
+        val query = listOfNotNull(
+            uuidCliente?.let { "$ARG_REGISTRO_ACOPIO_UUID_CLIENTE=$it" },
+            serverId?.let { "$ARG_REGISTRO_ACOPIO_SERVER_ID=$it" },
+        ).joinToString("&")
+        return "$CALIDAD_REGISTRAR_ANALISIS_BASE?$query"
+    }
+
+    private const val CALIDAD_DETALLE_ANALISIS_BASE = "calidad_detalle_analisis"
+    const val CALIDAD_DETALLE_ANALISIS = "$CALIDAD_DETALLE_ANALISIS_BASE/{$ARG_REGISTRO_ID}"
+    fun calidadDetalleAnalisis(registroAcopioId: String) = "$CALIDAD_DETALLE_ANALISIS_BASE/$registroAcopioId"
 }

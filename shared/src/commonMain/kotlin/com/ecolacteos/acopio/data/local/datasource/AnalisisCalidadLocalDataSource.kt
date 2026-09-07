@@ -57,6 +57,10 @@ class AnalisisCalidadLocalDataSource(
         queries.observarTodos(usuarioId).asFlow().mapToList(dispatchers.io)
             .map { filas -> filas.map { it.aDominio() } }
 
+    /** `C-04` (Fase 8C, ONLINE+CACHE): degradado sin conectividad -- ver el comentario en el `.sq`. */
+    fun obtenerPorRegistroAcopioServerId(registroAcopioServerId: String): AnalisisCalidad? =
+        queries.obtenerPorRegistroAcopioServerId(registroAcopioServerId).executeAsOneOrNull()?.aDominio()
+
     fun actualizarEstadoSync(
         uuidCliente: String,
         status: SyncStatus,
