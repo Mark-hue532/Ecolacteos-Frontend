@@ -77,6 +77,24 @@ class VentaLocalDataSource(
     fun eliminarSincronizadosDeUsuario(usuarioId: String) {
         queries.eliminarSincronizadosDeUsuario(usuarioId)
     }
+
+    /** Ver [RegistroAcopioLocalDataSource.descartarNoSincronizado]. `S-05`, Fase 8B. */
+    fun descartarNoSincronizado(uuidCliente: String, usuarioId: String) {
+        queries.descartarNoSincronizado(uuidCliente = uuidCliente, usuarioId = usuarioId)
+    }
+
+    /** Ver [RegistroAcopioLocalDataSource.actualizar]. `S-05` "editar y reintentar", Fase 8B. */
+    fun actualizar(venta: Venta) {
+        queries.actualizar(
+            fecha = venta.fecha,
+            tipoCliente = venta.tipoCliente,
+            tipoQuesoId = venta.tipoQuesoId,
+            cantidad = venta.cantidad,
+            precioUnitario = venta.precioUnitario,
+            uuidCliente = venta.uuidCliente,
+            usuarioId = venta.usuarioId,
+        )
+    }
 }
 
 private fun Venta_local.aDominio(): Venta = Venta(

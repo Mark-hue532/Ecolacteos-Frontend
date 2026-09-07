@@ -7,9 +7,11 @@ import com.ecolacteos.acopio.core.aTextoConEscala
 import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.core.decimalDesdeTexto
 import com.ecolacteos.acopio.data.repository.NuevoRegistroAcopio
+import com.ecolacteos.acopio.data.repository.RegistroAcopioRepository
 import com.ecolacteos.acopio.domain.model.MotivoObservacion
 import com.ecolacteos.acopio.domain.model.Proveedor
 import com.ecolacteos.acopio.domain.model.Unidad
+import com.ecolacteos.acopio.domain.usecase.ActualizarRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -85,6 +88,8 @@ data class RegistrarAcopioUiState(
     val guardando: Boolean = false,
     val hayConexion: Boolean = true,
     val hayBorradorParaRetomar: Boolean = false,
+    /** `S-05` "editar y reintentar" (Fase 8B): sin borrador, sin re-disparar el permiso/búsqueda de GPS. */
+    val esEdicion: Boolean = false,
 ) {
     /** Nunca depende de [gps] (`§5`, regla 4: "nunca se impide guardar por falta de GPS"). */
     val puedeGuardar: Boolean
@@ -131,13 +136,17 @@ private data class BorradorAcopio(
  * capacidades nuevas de esta sub-fase; litros/fecha siguen el mismo patrón de validación que `V-02`.
  */
 class RegistrarAcopioViewModel(
-    proveedorId: String,
+    proveedorId: String = "",
     private val crearRegistroAcopioUseCase: CrearRegistroAcopioUseCase,
+    private val actualizarRegistroAcopioUseCase: ActualizarRegistroAcopioUseCase,
+    private val registroAcopioRepository: RegistroAcopioRepository,
     private val observarCatalogosUseCase: ObservarCatalogosUseCase,
     private val observarConectividadUseCase: ObservarConectividadUseCase,
     private val borradorFormularioUseCase: BorradorFormularioUseCase,
     private val gestorPermisos: GestorPermisos,
     private val proveedorUbicacion: ProveedorUbicacion,
+    /** No nulo = `S-05` "editar y reintentar" (Fase 8B): precarga la fila existente, nunca crea una nueva. */
+    private val uuidClienteAEditar: String? = null,
     private val reloj: Clock = Clock.System,
     private val zona: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
@@ -145,7 +154,12 @@ class RegistrarAcopioViewModel(
     private val ahora: LocalDateTime = ahoraComoFechaHora(reloj, zona)
 
     private val _uiState = MutableStateFlow(
-        RegistrarAcopioUiState(proveedorId = proveedorId, fechaHora = ahora, fechaHoraTexto = ahora.formateada()),
+        RegistrarAcopioUiState(
+            proveedorId = proveedorId,
+            fechaHora = ahora,
+            fechaHoraTexto = ahora.formateada(),
+            esEdicion = uuidClienteAEditar != null,
+        ),
     )
     val uiState: StateFlow<RegistrarAcopioUiState> = _uiState.asStateFlow()
 
@@ -159,7 +173,9 @@ class RegistrarAcopioViewModel(
     init {
         observarCatalogosUseCase.proveedores()
             .onEach { proveedores ->
-                val encontrado = proveedores.firstOrNull { it.id == proveedorId }
+                // Dinámico, no el parámetro del constructor: en modo edición arranca en "" y recién se
+                // conoce el proveedorId real una vez que `cargarParaEdicion` resuelve la fila existente.
+                val encontrado = proveedores.firstOrNull { it.id == _uiState.value.proveedorId }
                 _uiState.update {
                     it.copy(
                         proveedor = encontrado,
@@ -175,24 +191,101 @@ class RegistrarAcopioViewModel(
             .launchIn(viewModelScope)
 
         observarCatalogosUseCase.unidades()
-            .onEach { unidades -> _uiState.update { it.copy(unidades = unidades) } }
+            .onEach { unidades ->
+                _uiState.update { it.copy(unidades = unidades) }
+                // La unidad de la fila a editar recién puede seleccionarse una vez que el catálogo llegó.
+                if (uuidClienteAEditar != null) preseleccionarUnidadSiHaceFalta()
+            }
             .launchIn(viewModelScope)
 
         observarCatalogosUseCase.motivosObservacion()
-            .onEach { motivos -> _uiState.update { it.copy(motivos = motivos) } }
+            .onEach { motivos ->
+                _uiState.update { it.copy(motivos = motivos) }
+                if (uuidClienteAEditar != null) preseleccionarMotivoSiHaceFalta()
+            }
             .launchIn(viewModelScope)
 
         observarConectividadUseCase()
             .onEach { conectado -> _uiState.update { it.copy(hayConexion = conectado) } }
             .launchIn(viewModelScope)
 
-        val payload = borradorFormularioUseCase.obtener(PANTALLA_BORRADOR)
-        if (payload != null) {
-            borradorPendiente = payload.aBorradorOrNull()
-            if (borradorPendiente != null) _uiState.update { it.copy(hayBorradorParaRetomar = true) }
+        if (uuidClienteAEditar != null) {
+            cargarParaEdicion(uuidClienteAEditar)
+        } else {
+            val payload = borradorFormularioUseCase.obtener(PANTALLA_BORRADOR)
+            if (payload != null) {
+                borradorPendiente = payload.aBorradorOrNull()
+                if (borradorPendiente != null) _uiState.update { it.copy(hayBorradorParaRetomar = true) }
+            }
+            iniciarBusquedaDeGps()
         }
+    }
 
-        iniciarBusquedaDeGps()
+    /**
+     * `S-05` "editar y reintentar": precarga los campos de la fila existente -- nunca dispara una nueva
+     * búsqueda de GPS ni de permiso (`§5` no lo pide para este camino, y volver a pedir el permiso en medio
+     * de una corrección sería fuera de contexto, `§12` regla 1). El GPS que ya tenía la fila se conserva tal
+     * cual, editable solo indirectamente si el usuario vuelve a guardar (no hay UI para borrarlo en esta
+     * sub-fase -- decisión de alcance, ver checkpoint).
+     */
+    private var unidadIdDeLaFilaAEditar: String? = null
+    private var motivoIdDeLaFilaAEditar: String? = null
+
+    private fun cargarParaEdicion(uuidCliente: String) {
+        viewModelScope.launch {
+            val existente = registroAcopioRepository.observarPendientes().first().firstOrNull { it.uuidCliente == uuidCliente }
+            if (existente == null) {
+                _uiState.update { it.copy(errorGeneral = "No se encontró el registro a editar.") }
+                return@launch
+            }
+            unidadIdDeLaFilaAEditar = existente.unidadId
+            motivoIdDeLaFilaAEditar = existente.motivoObservacionId
+
+            val gpsExistente = if (existente.gpsLat != null && existente.gpsLng != null) {
+                EstadoGps.Obtenido(
+                    lat = existente.gpsLat,
+                    lng = existente.gpsLng,
+                    latTexto = existente.gpsLat.aTextoConEscala(ESCALA_GPS),
+                    lngTexto = existente.gpsLng.aTextoConEscala(ESCALA_GPS),
+                )
+            } else {
+                EstadoGps.NoDisponible
+            }
+
+            _uiState.update {
+                it.copy(
+                    proveedorId = existente.proveedorId,
+                    fechaHora = existente.fechaHora,
+                    fechaHoraTexto = existente.fechaHora.formateada(),
+                    litrosTexto = existente.litros.aTextoConEscala(ESCALA_LITROS),
+                    gps = gpsExistente,
+                )
+            }
+            preseleccionarUnidadSiHaceFalta()
+            preseleccionarMotivoSiHaceFalta()
+            // El observador de proveedores de más arriba ya pudo haber corrido con proveedorId = "" (antes
+            // de saber cuál era el real) -- se re-evalúa acá con el id recién resuelto.
+            val proveedor = observarCatalogosUseCase.proveedores().first().firstOrNull { it.id == existente.proveedorId }
+            _uiState.update {
+                it.copy(
+                    proveedor = proveedor,
+                    proveedorEnCache = proveedor != null,
+                    errorGeneral = if (proveedor == null) "Este proveedor ya no está disponible sin conexión." else it.errorGeneral,
+                )
+            }
+        }
+    }
+
+    private fun preseleccionarUnidadSiHaceFalta() {
+        val unidadId = unidadIdDeLaFilaAEditar ?: return
+        val unidad = _uiState.value.unidades.firstOrNull { it.id == unidadId } ?: return
+        _uiState.update { it.copy(unidadSeleccionada = unidad) }
+    }
+
+    private fun preseleccionarMotivoSiHaceFalta() {
+        val motivoId = motivoIdDeLaFilaAEditar ?: return
+        val motivo = _uiState.value.motivos.firstOrNull { it.id == motivoId } ?: return
+        _uiState.update { it.copy(motivoSeleccionado = motivo) }
     }
 
     fun onEvent(evento: RegistrarAcopioEvent) {
@@ -337,22 +430,25 @@ class RegistrarAcopioViewModel(
 
         _uiState.update { it.copy(guardando = true, errorGeneral = null) }
         val gpsActual = estado.gps as? EstadoGps.Obtenido
+        val datos = NuevoRegistroAcopio(
+            proveedorId = estado.proveedorId,
+            unidadId = estado.unidadSeleccionada!!.id,
+            fechaHora = estado.fechaHora ?: ahoraComoFechaHora(reloj, zona),
+            litros = litros!!,
+            gpsLat = gpsActual?.lat,
+            gpsLng = gpsActual?.lng,
+            motivoObservacionId = estado.motivoSeleccionado?.id,
+            // Nunca hay captura por voz en v1 (MOBILE_SCREENS.md §16) -- siempre false, nunca null.
+            litrosPorVoz = false,
+        )
 
         viewModelScope.launch {
-            crearRegistroAcopioUseCase(
-                NuevoRegistroAcopio(
-                    proveedorId = estado.proveedorId,
-                    unidadId = estado.unidadSeleccionada!!.id,
-                    fechaHora = estado.fechaHora ?: ahoraComoFechaHora(reloj, zona),
-                    litros = litros!!,
-                    gpsLat = gpsActual?.lat,
-                    gpsLng = gpsActual?.lng,
-                    motivoObservacionId = estado.motivoSeleccionado?.id,
-                    // Nunca hay captura por voz en v1 (MOBILE_SCREENS.md §16) -- siempre false, nunca null.
-                    litrosPorVoz = false,
-                ),
-            )
-            borradorFormularioUseCase.descartar(PANTALLA_BORRADOR)
+            if (uuidClienteAEditar != null) {
+                actualizarRegistroAcopioUseCase(uuidClienteAEditar, datos)
+            } else {
+                crearRegistroAcopioUseCase(datos)
+                borradorFormularioUseCase.descartar(PANTALLA_BORRADOR)
+            }
             _uiState.update { it.copy(guardando = false) }
             _effect.send(RegistrarAcopioEffect.GuardadoConExito)
         }

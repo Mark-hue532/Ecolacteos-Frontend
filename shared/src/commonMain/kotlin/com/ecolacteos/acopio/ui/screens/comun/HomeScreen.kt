@@ -3,7 +3,9 @@ package com.ecolacteos.acopio.ui.screens.comun
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,10 +21,16 @@ import com.ecolacteos.acopio.presentation.comun.HomeViewModel
 import com.ecolacteos.acopio.ui.components.BannerSinConexion
 import com.ecolacteos.acopio.ui.components.BotonAccionPrincipal
 import com.ecolacteos.acopio.ui.components.EstadoVacio
+import com.ecolacteos.acopio.ui.components.IndicadorSync
 import com.ecolacteos.acopio.ui.theme.Espaciado
 import org.koin.compose.viewmodel.koinViewModel
 
-/** `S-03 · Home` (`MOBILE_SCREENS.md §4`). Sin conexión: banner discreto, nunca bloquea. */
+/**
+ * `S-03 · Home` (`MOBILE_SCREENS.md §4`). Sin conexión: banner discreto, nunca bloquea. Único punto de la
+ * app (Fase 8B) que efectivamente coloca [IndicadorSync] (`§2.1` regla 4) y da acceso a `S-06`/`S-07` --
+ * ver checkpoint de `8B`: un `Scaffold`/`TopBar` compartido por las 13 pantallas es un cambio arquitectónico
+ * mayor fuera de alcance de esta sub-fase, así que Home, raíz del stack y siempre alcanzable, hace de hub.
+ */
 @Composable
 fun HomeScreen(
     onNavegarARegistrarVenta: () -> Unit,
@@ -30,6 +38,10 @@ fun HomeScreen(
     onNavegarAEstadoSincronizacion: () -> Unit,
     onNavegarARutaAcopio: () -> Unit,
     onNavegarAEscanearQrAcopio: () -> Unit,
+    onNavegarAHomeCalidad: () -> Unit,
+    onNavegarAPendientes: () -> Unit,
+    onNavegarAComunicados: () -> Unit,
+    onNavegarAAjustes: () -> Unit,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsState()
@@ -42,6 +54,10 @@ fun HomeScreen(
                 HomeEffect.NavegarAEstadoSincronizacion -> onNavegarAEstadoSincronizacion()
                 HomeEffect.NavegarARutaAcopio -> onNavegarARutaAcopio()
                 HomeEffect.NavegarAEscanearQrAcopio -> onNavegarAEscanearQrAcopio()
+                HomeEffect.NavegarAHomeCalidad -> onNavegarAHomeCalidad()
+                HomeEffect.NavegarAPendientes -> onNavegarAPendientes()
+                HomeEffect.NavegarAComunicados -> onNavegarAComunicados()
+                HomeEffect.NavegarAAjustes -> onNavegarAAjustes()
             }
         }
     }
@@ -51,13 +67,36 @@ fun HomeScreen(
             BannerSinConexion(modifier = Modifier.padding(bottom = Espaciado.m.dp))
         }
 
-        Text("Hola, ${estado.nombre}", style = MaterialTheme.typography.headlineMedium)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Hola, ${estado.nombre}", style = MaterialTheme.typography.headlineMedium)
+            Text(
+                "Ajustes",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeEvent.AjustesPresionado) }),
+            )
+        }
+
+        IndicadorSync(
+            pendientes = estado.resumenSync.pendientes,
+            conError = estado.resumenSync.conError > 0,
+            hayConexion = estado.hayConexion,
+            onClick = { viewModel.onEvent(HomeEvent.IndicadorSyncPresionado) },
+        )
 
         Text(
             resumenSyncTexto(estado.resumenSync.pendientes, estado.resumenSync.conError),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeEvent.EstadoSyncPresionado) })
                 .padding(vertical = Espaciado.s.dp),
+        )
+
+        Text(
+            comunicadosTexto(estado.comunicadosNoLeidos),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeEvent.ComunicadosPresionado) })
+                .padding(bottom = Espaciado.s.dp),
         )
 
         if (estado.catalogosVacios) {
@@ -102,3 +141,7 @@ private fun resumenSyncTexto(pendientes: Int, conError: Int): String = when {
     pendientes > 0 -> "$pendientes por enviar"
     else -> "Todo al día"
 }
+
+/** [HomeUiState.comunicadosNoLeidos][com.ecolacteos.acopio.presentation.comun.HomeUiState] siempre en 0 -- ver el comentario del campo. */
+private fun comunicadosTexto(comunicadosNoLeidos: Int): String =
+    if (comunicadosNoLeidos > 0) "Comunicados ($comunicadosNoLeidos)" else "Comunicados"

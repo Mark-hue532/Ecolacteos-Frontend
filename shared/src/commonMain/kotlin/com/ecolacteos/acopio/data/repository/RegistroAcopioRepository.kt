@@ -71,6 +71,14 @@ interface RegistroAcopioRepository {
     fun observarHistorialProveedor(proveedorId: String): Flow<List<ItemHistorialRegistroAcopio>>
 
     /**
+     * `C-01` (Fase 8C, `MOBILE_SCREENS.md §6`): todas las entregas AJENAS cacheadas hasta ahora, sin
+     * filtrar por proveedor -- a diferencia de [observarHistorialProveedor], acá no hay un proveedor de
+     * partida (Home calidad todavía no sabe cuál). Solo `registro_acopio_cache`, tal como fija la fuente
+     * de `C-01` en el documento: las entregas **propias** de este dispositivo no entran acá.
+     */
+    fun observarEntregasCacheadas(): Flow<List<RegistroAcopioReferencia>>
+
+    /**
      * Población on-demand de `registro_acopio_cache` para armar el picker "elegí el registro padre"
      * cuando es ajeno (`§4.2` caso 3, `§5` fila `ObtenerRegistrosDeProveedorUseCase`). Clasificación
      * ONLINE+CACHE (`§5` de la arquitectura): intenta refrescar desde red y cachear; si falla, degrada a
@@ -89,6 +97,18 @@ interface RegistroAcopioRepository {
 
     /** Fuerza un reintento fuera del ciclo automático (`ReintentarManualUseCase`, `§5`). */
     fun reintentar(uuidCliente: String)
+
+    /**
+     * `S-05` "editar y reintentar" (Fase 8B): actualiza los campos capturados de una fila **no
+     * sincronizada** de la sesión activa y la vuelve a `PENDING` con `sync_attempts` en 0 -- mismo
+     * `uuidCliente`, la idempotencia del backend (`MOBILE_ARCHITECTURE.md §7`) hace que sea seguro.
+     * `false` si la fila no existe o no pertenece a la sesión activa -- la UI no debería llegar a este
+     * caso (`S-05` ya filtra por sesión), pero el Repository no confía ciegamente en el llamador.
+     */
+    suspend fun actualizar(uuidCliente: String, datos: NuevoRegistroAcopio): Boolean
+
+    /** `S-05` (Fase 8B): la única forma de que trabajo no confirmado salga de la base (`CLAUDE.md §3.6`). */
+    suspend fun descartar(uuidCliente: String)
 
     /** Logout con 0 pendientes (`§6`): borra el historial ya confirmado de la sesión activa. */
     suspend fun purgarSincronizados()
@@ -153,6 +173,8 @@ class RegistroAcopioRepositoryImpl(
                 ajenos.filterNot { it.id in idsPropiosConSeverId }.map { ItemHistorialRegistroAcopio.Ajeno(it) }
         }
 
+    override fun observarEntregasCacheadas(): Flow<List<RegistroAcopioReferencia>> = cacheLocal.observarTodos()
+
     override suspend fun obtenerRegistrosDeProveedor(proveedorId: String): List<RegistroAcopioReferencia> {
         when (val respuesta = apiClient.get<List<RegistroAcopioResumenResponse>>(Endpoints.registrosAcopioPorProveedor(proveedorId))) {
             is ApiResult.Exito -> {
@@ -190,6 +212,32 @@ class RegistroAcopioRepositoryImpl(
     override fun reintentar(uuidCliente: String) {
         local.actualizarEstadoSync(uuidCliente, SyncStatus.PENDING, syncAttempts = 0, syncError = null, nextAttemptAt = null)
         syncEngine.solicitarSyncOportunista()
+    }
+
+    override suspend fun actualizar(uuidCliente: String, datos: NuevoRegistroAcopio): Boolean {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return false
+        val existente = local.obtenerPorUuidCliente(uuidCliente) ?: return false
+        if (existente.usuarioId != usuarioId || existente.syncStatus == SyncStatus.SYNCED) return false
+
+        local.actualizar(
+            existente.copy(
+                proveedorId = datos.proveedorId,
+                unidadId = datos.unidadId,
+                fechaHora = datos.fechaHora,
+                litros = datos.litros,
+                gpsLat = datos.gpsLat,
+                gpsLng = datos.gpsLng,
+                motivoObservacionId = datos.motivoObservacionId,
+                litrosPorVoz = datos.litrosPorVoz,
+            ),
+        )
+        syncEngine.solicitarSyncOportunista()
+        return true
+    }
+
+    override suspend fun descartar(uuidCliente: String) {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
+        local.descartarNoSincronizado(uuidCliente, usuarioId)
     }
 
     override suspend fun purgarSincronizados() {

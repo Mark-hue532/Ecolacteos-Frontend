@@ -98,3 +98,22 @@ WHERE uuid_cliente = :uuidCliente;
 
 eliminarSincronizadosAntesDe:
 DELETE FROM registro_acopio_local WHERE sync_status = 'SYNCED' AND sincronizado_en < :fecha;
+
+-- Fase 8B (S-05, regla 3): la única forma de que trabajo no confirmado salga de la base por decisión del
+-- usuario (`CLAUDE.md §3.6`). `usuario_id` filtra defensivamente -- S-05 ya lista solo lo del usuario
+-- activo, pero esta cláusula evita que un uuid_cliente ajeno (nunca debería llegar acá) borre algo que no
+-- es de esta sesión. `sync_status <> 'SYNCED'` por el mismo motivo: lo ya confirmado no se descarta por acá.
+descartarNoSincronizado:
+DELETE FROM registro_acopio_local
+WHERE uuid_cliente = :uuidCliente AND usuario_id = :usuarioId AND sync_status <> 'SYNCED';
+
+-- Fase 8B (S-05, "editar y reintentar"): actualiza los campos capturados y vuelve a PENDING con
+-- sync_attempts en 0, conservando el mismo uuid_cliente -- la idempotencia del backend (§7) es lo que
+-- hace esto seguro (nunca genera un registro duplicado).
+actualizar:
+UPDATE registro_acopio_local
+SET proveedor_id = :proveedorId, unidad_id = :unidadId, fecha_hora = :fechaHora, litros = :litros,
+    gps_lat = :gpsLat, gps_lng = :gpsLng, motivo_observacion_id = :motivoObservacionId,
+    litros_por_voz = :litrosPorVoz, sync_status = 'PENDING', sync_attempts = 0, sync_error = NULL,
+    next_attempt_at = NULL
+WHERE uuid_cliente = :uuidCliente AND usuario_id = :usuarioId;

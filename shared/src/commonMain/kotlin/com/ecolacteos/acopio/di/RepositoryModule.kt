@@ -32,7 +32,7 @@ val repositoryModule = module {
     }
     single<VentaRepository> { VentaRepositoryImpl(gestorSesion = get(), local = get(), syncEngine = get(), apiClient = get()) }
     single<AnalisisCalidadRepository> {
-        AnalisisCalidadRepositoryImpl(gestorSesion = get(), local = get(), resolutor = get(), syncEngine = get())
+        AnalisisCalidadRepositoryImpl(gestorSesion = get(), local = get(), resolutor = get(), syncEngine = get(), apiClient = get())
     }
     single<LoteProduccionRepository> {
         LoteProduccionRepositoryImpl(gestorSesion = get(), local = get(), resolutor = get(), syncEngine = get())

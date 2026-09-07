@@ -205,6 +205,7 @@ class FixtureRepositorios(
             analisisLocal,
             resolutor,
             syncEngineParaRepositorios,
+            apiClient,
             reloj,
             zona,
         )

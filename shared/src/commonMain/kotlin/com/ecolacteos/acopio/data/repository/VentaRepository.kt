@@ -38,6 +38,12 @@ interface VentaRepository {
     fun reintentar(uuidCliente: String)
     suspend fun purgarSincronizados()
 
+    /** Ver `RegistroAcopioRepository.actualizar` -- mismo contrato, `S-05` "editar y reintentar" (Fase 8B). */
+    suspend fun actualizar(uuidCliente: String, datos: NuevaVenta): Boolean
+
+    /** `S-05` (Fase 8B): la única forma de que trabajo no confirmado salga de la base (`CLAUDE.md §3.6`). */
+    suspend fun descartar(uuidCliente: String)
+
     /**
      * `V-03` (`MOBILE_SCREENS.md §8`, `PROMPT_FASE_07.md §2.4`): local primero, y si ya hay `server_id` y
      * hay señal, refresca contra `GET /api/ventas/{id}` para traer `total`/`tipoQuesoNombre` reales -- el
@@ -95,6 +101,29 @@ class VentaRepositoryImpl(
     override fun reintentar(uuidCliente: String) {
         local.actualizarEstadoSync(uuidCliente, SyncStatus.PENDING, syncAttempts = 0, syncError = null, nextAttemptAt = null)
         syncEngine.solicitarSyncOportunista()
+    }
+
+    override suspend fun actualizar(uuidCliente: String, datos: NuevaVenta): Boolean {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return false
+        val existente = local.obtenerPorUuidCliente(uuidCliente) ?: return false
+        if (existente.usuarioId != usuarioId || existente.syncStatus == SyncStatus.SYNCED) return false
+
+        local.actualizar(
+            existente.copy(
+                fecha = datos.fecha,
+                tipoCliente = datos.tipoCliente,
+                tipoQuesoId = datos.tipoQuesoId,
+                cantidad = datos.cantidad,
+                precioUnitario = datos.precioUnitario,
+            ),
+        )
+        syncEngine.solicitarSyncOportunista()
+        return true
+    }
+
+    override suspend fun descartar(uuidCliente: String) {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
+        local.descartarNoSincronizado(uuidCliente, usuarioId)
     }
 
     override suspend fun obtenerDetalle(uuidCliente: String): VentaDetalle? {

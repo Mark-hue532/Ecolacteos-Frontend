@@ -1,11 +1,15 @@
 package com.ecolacteos.acopio.di
 
 import com.ecolacteos.acopio.domain.VerificadorPendientes
+import com.ecolacteos.acopio.domain.usecase.ActualizarRegistroAcopioUseCase
+import com.ecolacteos.acopio.domain.usecase.ActualizarVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.AnexarCorreccionUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
 import com.ecolacteos.acopio.domain.usecase.BuscarProveedorPorNombreUseCase
+import com.ecolacteos.acopio.domain.usecase.ClasificarPadresRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.ConfirmarComunicadoUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearAnalisisCalidadUseCase
+import com.ecolacteos.acopio.domain.usecase.DescartarPendienteUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearLoteProduccionUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearVentaUseCase
@@ -14,12 +18,14 @@ import com.ecolacteos.acopio.domain.usecase.LoginUseCase
 import com.ecolacteos.acopio.domain.usecase.LogoutUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
+import com.ecolacteos.acopio.domain.usecase.ObservarEntregasConEstadoAnalisisUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarEstadoSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarHistorialProveedorUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarPendientesUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarProveedoresVisitadosHoyUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarResumenSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarVentasDelDiaUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleAnalisisCalidadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerRegistrosDeProveedorUseCase
@@ -71,6 +77,16 @@ val useCaseModule = module {
     single { ObtenerDetalleRegistroAcopioUseCase(get()) }
     single { ObtenerZonaAsignadaUseCase(catalogoRepository = get(), gestorSesion = get()) }
     single { ObservarProveedoresVisitadosHoyUseCase(get()) }
+
+    // Fase 8B (PROMPT_FASE_08B.md §5): S-05, S-07 y el modo edición de A-04/V-02.
+    single { DescartarPendienteUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get(), loteProduccionRepository = get(), ventaRepository = get()) }
+    single { ActualizarRegistroAcopioUseCase(get()) }
+    single { ActualizarVentaUseCase(get()) }
+
+    // Fase 8C (PROMPT_FASE_08C.md §6): los 3 UseCase de CALIDAD (C-01..C-04).
+    single { ClasificarPadresRegistroAcopioUseCase(get()) }
+    single { ObservarEntregasConEstadoAnalisisUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get()) }
+    single { ObtenerDetalleAnalisisCalidadUseCase(get()) }
 
     single {
         VerificarPendientesUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get(), loteProduccionRepository = get(), ventaRepository = get())

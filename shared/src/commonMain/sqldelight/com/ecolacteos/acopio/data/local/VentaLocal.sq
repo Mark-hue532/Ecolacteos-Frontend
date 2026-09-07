@@ -74,3 +74,16 @@ WHERE uuid_cliente = :uuidCliente;
 
 eliminarSincronizadosAntesDe:
 DELETE FROM venta_local WHERE sync_status = 'SYNCED' AND sincronizado_en < :fecha;
+
+-- Fase 8B (S-05, regla 3) -- ver el comentario en `RegistroAcopioLocal.sq`.
+descartarNoSincronizado:
+DELETE FROM venta_local
+WHERE uuid_cliente = :uuidCliente AND usuario_id = :usuarioId AND sync_status <> 'SYNCED';
+
+-- Fase 8B (S-05, "editar y reintentar") -- ver el comentario en `RegistroAcopioLocal.sq`.
+actualizar:
+UPDATE venta_local
+SET fecha = :fecha, tipo_cliente = :tipoCliente, tipo_queso_id = :tipoQuesoId, cantidad = :cantidad,
+    precio_unitario = :precioUnitario, sync_status = 'PENDING', sync_attempts = 0, sync_error = NULL,
+    next_attempt_at = NULL
+WHERE uuid_cliente = :uuidCliente AND usuario_id = :usuarioId;

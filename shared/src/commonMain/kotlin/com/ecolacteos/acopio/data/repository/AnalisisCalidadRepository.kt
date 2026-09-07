@@ -1,12 +1,17 @@
 package com.ecolacteos.acopio.data.repository
 
+import com.ecolacteos.acopio.core.ApiResult
 import com.ecolacteos.acopio.core.Decimal
 import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.core.generarUuidV4
 import com.ecolacteos.acopio.data.local.datasource.AnalisisCalidadLocalDataSource
+import com.ecolacteos.acopio.data.remote.dto.AnalisisCalidadResponse
 import com.ecolacteos.acopio.domain.GestorSesion
 import com.ecolacteos.acopio.domain.model.AnalisisCalidad
+import com.ecolacteos.acopio.domain.model.AnalisisCalidadDetalle
 import com.ecolacteos.acopio.domain.model.SyncStatus
+import com.ecolacteos.acopio.network.ApiClient
+import com.ecolacteos.acopio.network.Endpoints
 import com.ecolacteos.acopio.synchronization.SyncEngine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +40,17 @@ interface AnalisisCalidadRepository {
     fun observarPendientes(): Flow<List<AnalisisCalidad>>
     fun reintentar(uuidCliente: String)
     suspend fun purgarSincronizados()
+
+    /**
+     * `C-04` (Fase 8C, ONLINE+CACHE): `GET /api/analisis-calidad/registro/{registroAcopioId}`. Si falla
+     * (sin conexión, error), degrada a `analisis_calidad_local` -- la propia captura de este dispositivo
+     * referenciando ese mismo padre por su `server_id` ya resuelto -- sin `resultado` (ver
+     * [AnalisisCalidadDetalle]). `null` solo si ninguna de las dos fuentes tiene nada para este id.
+     */
+    suspend fun obtenerDetallePorRegistro(registroAcopioId: String): AnalisisCalidadDetalle?
+
+    /** `S-05` (Fase 8B): descarta una fila no sincronizada de la sesión activa. Ver `CLAUDE.md §3.6`. */
+    suspend fun descartar(uuidCliente: String)
 }
 
 internal class AnalisisCalidadRepositoryImpl(
@@ -42,6 +58,7 @@ internal class AnalisisCalidadRepositoryImpl(
     private val local: AnalisisCalidadLocalDataSource,
     private val resolutor: ResolutorPadreRegistroAcopio,
     private val syncEngine: SyncEngine,
+    private val apiClient: ApiClient,
     private val reloj: Clock = Clock.System,
     private val zona: TimeZone = TimeZone.currentSystemDefault(),
 ) : AnalisisCalidadRepository {
@@ -104,4 +121,46 @@ internal class AnalisisCalidadRepositoryImpl(
         val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
         local.eliminarSincronizadosDeUsuario(usuarioId)
     }
+
+    override suspend fun descartar(uuidCliente: String) {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
+        local.descartarNoSincronizado(uuidCliente, usuarioId)
+    }
+
+    override suspend fun obtenerDetallePorRegistro(registroAcopioId: String): AnalisisCalidadDetalle? =
+        when (val respuesta = apiClient.get<AnalisisCalidadResponse>(Endpoints.analisisCalidadPorRegistro(registroAcopioId))) {
+            is ApiResult.Exito -> respuesta.datos.aDetalle()
+            // ONLINE+CACHE (§5 de la arquitectura): sin red o con error, degrada a la propia captura local
+            // que ya referencia este mismo padre por su server_id -- nunca propaga el error acá.
+            is ApiResult.Error -> local.obtenerPorRegistroAcopioServerId(registroAcopioId)?.aDetalleDesdeLocal()
+        }
+
+    private fun AnalisisCalidadResponse.aDetalle(): AnalisisCalidadDetalle = AnalisisCalidadDetalle(
+        registroAcopioId = registroAcopioId,
+        folioMuestra = folioMuestra,
+        agua = agua,
+        proteina = proteina,
+        lactosa = lactosa,
+        densidad = densidad,
+        temperatura = temperatura,
+        ph = ph,
+        aguaAnadida = aguaAnadida,
+        resultado = resultado,
+        creadoEn = creadoEn,
+    )
+
+    /** Degradado desde `analisis_calidad_local` -- ver el comentario de [AnalisisCalidadDetalle.resultado]. */
+    private fun AnalisisCalidad.aDetalleDesdeLocal(): AnalisisCalidadDetalle = AnalisisCalidadDetalle(
+        registroAcopioId = registroAcopioServerId ?: registroAcopioUuidCliente.orEmpty(),
+        folioMuestra = folioMuestra,
+        agua = agua,
+        proteina = proteina,
+        lactosa = lactosa,
+        densidad = densidad,
+        temperatura = temperatura,
+        ph = ph,
+        aguaAnadida = aguaAnadida,
+        resultado = null,
+        creadoEn = creadoEn,
+    )
 }

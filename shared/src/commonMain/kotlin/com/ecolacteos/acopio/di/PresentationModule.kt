@@ -1,14 +1,23 @@
 package com.ecolacteos.acopio.di
 
 import com.ecolacteos.acopio.presentation.acopio.BuscarProveedorViewModel
+import com.ecolacteos.acopio.presentation.acopio.ConfirmarComunicadoViewModel
 import com.ecolacteos.acopio.presentation.acopio.DetalleRegistroAcopioViewModel
 import com.ecolacteos.acopio.presentation.acopio.EscanearQrViewModel
 import com.ecolacteos.acopio.presentation.acopio.HistorialProveedorViewModel
 import com.ecolacteos.acopio.presentation.acopio.RegistrarAcopioViewModel
 import com.ecolacteos.acopio.presentation.acopio.RutaDelDiaViewModel
+import com.ecolacteos.acopio.presentation.calidad.DetalleAnalisisCalidadViewModel
+import com.ecolacteos.acopio.presentation.calidad.HomeCalidadViewModel
+import com.ecolacteos.acopio.presentation.calidad.RegistrarAnalisisViewModel
+import com.ecolacteos.acopio.presentation.calidad.SeleccionarRegistroAnalisisViewModel
+import com.ecolacteos.acopio.presentation.comun.AjustesViewModel
+import com.ecolacteos.acopio.presentation.comun.ComunicadosViewModel
+import com.ecolacteos.acopio.presentation.comun.ConfirmacionesRecientesEnMemoria
 import com.ecolacteos.acopio.presentation.comun.EstadoSincronizacionViewModel
 import com.ecolacteos.acopio.presentation.comun.HomeViewModel
 import com.ecolacteos.acopio.presentation.comun.LoginViewModel
+import com.ecolacteos.acopio.presentation.comun.PendientesViewModel
 import com.ecolacteos.acopio.presentation.comun.SplashViewModel
 import com.ecolacteos.acopio.presentation.ventas.DetalleVentaViewModel
 import com.ecolacteos.acopio.presentation.ventas.HomeVentasViewModel
@@ -36,7 +45,17 @@ val presentationModule = module {
         )
     }
     viewModel { HomeVentasViewModel(get(), get()) }
-    viewModel { RegistrarVentaViewModel(crearVentaUseCase = get(), observarCatalogosUseCase = get(), observarConectividadUseCase = get(), borradorFormularioUseCase = get()) }
+    viewModel { params ->
+        RegistrarVentaViewModel(
+            crearVentaUseCase = get(),
+            actualizarVentaUseCase = get(),
+            ventaRepository = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+            borradorFormularioUseCase = get(),
+            uuidClienteAEditar = params.getOrNull(),
+        )
+    }
     viewModel { params -> DetalleVentaViewModel(uuidCliente = params.get(), obtenerDetalleVentaUseCase = get(), observarCatalogosUseCase = get()) }
 
     // Fase 8A (PROMPT_FASE_08A.md §2): las 6 pantallas de ACOPIADOR.
@@ -51,14 +70,19 @@ val presentationModule = module {
     viewModel { EscanearQrViewModel(resolverProveedorPorQrUseCase = get(), gestorPermisos = get()) }
     viewModel { BuscarProveedorViewModel(buscarProveedorPorNombreUseCase = get(), observarCatalogosUseCase = get()) }
     viewModel { params ->
+        // Dos parámetros posicionales -- ParametersHolder no tiene getOrNull(index), así que se leen por
+        // índice explícito (ParametersHolder.get(Int), sin chequeo de nulidad en runtime por erasure).
         RegistrarAcopioViewModel(
-            proveedorId = params.get(),
+            proveedorId = params.get<String>(0),
             crearRegistroAcopioUseCase = get(),
+            actualizarRegistroAcopioUseCase = get(),
+            registroAcopioRepository = get(),
             observarCatalogosUseCase = get(),
             observarConectividadUseCase = get(),
             borradorFormularioUseCase = get(),
             gestorPermisos = get(),
             proveedorUbicacion = get(),
+            uuidClienteAEditar = params.get<String?>(1),
         )
     }
     viewModel { params ->
@@ -75,6 +99,74 @@ val presentationModule = module {
             obtenerDetalleRegistroAcopioUseCase = get(),
             observarCatalogosUseCase = get(),
             gestorSesion = get(),
+        )
+    }
+
+    // Fase 8B (PROMPT_FASE_08B.md §2): S-05, S-06, S-07 y A-07.
+    single { ConfirmacionesRecientesEnMemoria() }
+    viewModel {
+        PendientesViewModel(
+            observarPendientesUseCase = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+            observarEstadoSyncUseCase = get(),
+            reintentarManualUseCase = get(),
+            descartarPendienteUseCase = get(),
+            sincronizarAhoraUseCase = get(),
+        )
+    }
+    viewModel { ComunicadosViewModel(observarCatalogosUseCase = get(), observarConectividadUseCase = get(), confirmacionesRecientesEnMemoria = get()) }
+    viewModel {
+        AjustesViewModel(
+            gestorSesion = get(),
+            logoutUseCase = get(),
+            observarPendientesUseCase = get(),
+            observarConectividadUseCase = get(),
+            observarResumenSyncUseCase = get(),
+            observarEstadoSyncUseCase = get(),
+            sincronizarAhoraUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        ConfirmarComunicadoViewModel(
+            comunicadoId = params.get(),
+            confirmarComunicadoUseCase = get(),
+            buscarProveedorPorNombreUseCase = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+            confirmacionesRecientesEnMemoria = get(),
+        )
+    }
+
+    // Fase 8C -- CALIDAD (PROMPT_FASE_08C.md §2): las 4 pantallas C-01..C-04.
+    viewModel {
+        HomeCalidadViewModel(
+            observarEntregasConEstadoAnalisisUseCase = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        SeleccionarRegistroAnalisisViewModel(
+            proveedorId = params.get(),
+            clasificarPadresRegistroAcopioUseCase = get(),
+            obtenerRegistrosDeProveedorUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        RegistrarAnalisisViewModel(
+            registroAcopioUuidCliente = params.get<String?>(0),
+            registroAcopioServerId = params.get<String?>(1),
+            crearAnalisisCalidadUseCase = get(),
+            observarConectividadUseCase = get(),
+            borradorFormularioUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        DetalleAnalisisCalidadViewModel(
+            registroAcopioId = params.get(),
+            obtenerDetalleAnalisisCalidadUseCase = get(),
         )
     }
 }

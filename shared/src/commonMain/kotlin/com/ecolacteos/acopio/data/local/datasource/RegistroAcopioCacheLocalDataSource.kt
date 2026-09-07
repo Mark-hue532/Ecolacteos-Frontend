@@ -49,6 +49,11 @@ class RegistroAcopioCacheLocalDataSource(
         queries.obtenerPorProveedor(proveedorId).asFlow().mapToList(dispatchers.io)
             .map { filas -> filas.map { it.aDominio() } }
 
+    /** `C-01` (Fase 8C): todas las entregas cacheadas, sin filtrar por proveedor. Sin paginación (`CLAUDE.md §3.3`). */
+    fun observarTodos(): Flow<List<RegistroAcopioReferencia>> =
+        queries.observarTodos().asFlow().mapToList(dispatchers.io)
+            .map { filas -> filas.map { it.aDominio() } }
+
     /** Logout (Fase 6 §6, C-09 RNF-12): borrado completo -- la única excepción a "nunca en masa" de Fase 4. */
     fun borrarTodo() {
         queries.deleteAll()

@@ -29,11 +29,17 @@ data class HomeUiState(
     val nombre: String = "",
     val rol: Rol = Rol.UNKNOWN,
     val etiquetaAccionPrincipal: String = "",
-    /** `null` -> sin acceso secundario para este rol (ej. CALIDAD/PRODUCCION/RECEPCION todavía, Fase 8C-8E). */
+    /** `null` -> sin acceso secundario para este rol (ej. PRODUCCION/RECEPCION todavía, Fase 8D-8E). */
     val etiquetaAccesoSecundario: String? = null,
     val accionPrincipalDisponible: Boolean = false,
     val resumenSync: ResumenSync = ResumenSync(),
     val ultimoSyncTexto: String? = null,
+    /**
+     * Se queda en 0 siempre (Fase 8B, `PROMPT_FASE_08B.md §7` decisión 3): el contrato no tiene concepto de
+     * "leído" para comunicados (`ComunicadoResponse` no trae ese estado, no hay endpoint para marcarlo) --
+     * inventarlo local rompería en cuanto otro dispositivo del mismo usuario lo confirme. Documentado como
+     * no implementable sin backend, no como un olvido.
+     */
     val comunicadosNoLeidos: Int = 0,
     val hayConexion: Boolean = true,
     val catalogosVacios: Boolean = false,
@@ -45,6 +51,11 @@ sealed interface HomeEvent {
     data object AccesoSecundarioPresionado : HomeEvent
     data object EstadoSyncPresionado : HomeEvent
     data object SincronizarPresionado : HomeEvent
+
+    // Fase 8B (PROMPT_FASE_08B.md §4): accesos que S-03 necesita para llegar a S-05, S-06 y S-07.
+    data object IndicadorSyncPresionado : HomeEvent
+    data object ComunicadosPresionado : HomeEvent
+    data object AjustesPresionado : HomeEvent
 }
 
 sealed interface HomeEffect {
@@ -56,6 +67,15 @@ sealed interface HomeEffect {
     // Fase 8A -- ACOPIADOR (MOBILE_SCREENS.md §5).
     data object NavegarARutaAcopio : HomeEffect
     data object NavegarAEscanearQrAcopio : HomeEffect
+
+    // Fase 8C -- CALIDAD (MOBILE_SCREENS.md §6).
+    data object NavegarAHomeCalidad : HomeEffect
+
+    // Fase 8B (PROMPT_FASE_08B.md §4).
+    /** Ruta directa a `S-05` vía [IndicadorSync][com.ecolacteos.acopio.ui.components.IndicadorSync] (`§2.1` regla 4). */
+    data object NavegarAPendientes : HomeEffect
+    data object NavegarAComunicados : HomeEffect
+    data object NavegarAAjustes : HomeEffect
 }
 
 private const val VENTANA_DESACTUALIZADO_HORAS = 24L
@@ -103,6 +123,7 @@ class HomeViewModel(
                 when (_uiState.value.rol) {
                     Rol.VENTAS -> HomeEffect.NavegarARegistrarVenta
                     Rol.ACOPIADOR -> HomeEffect.NavegarARutaAcopio
+                    Rol.CALIDAD -> HomeEffect.NavegarAHomeCalidad
                     else -> null
                 },
             )
@@ -115,6 +136,9 @@ class HomeViewModel(
             )
             HomeEvent.EstadoSyncPresionado -> viewModelScope.launch { _effect.send(HomeEffect.NavegarAEstadoSincronizacion) }
             HomeEvent.SincronizarPresionado -> viewModelScope.launch { sincronizarAhoraUseCase() }
+            HomeEvent.IndicadorSyncPresionado -> viewModelScope.launch { _effect.send(HomeEffect.NavegarAPendientes) }
+            HomeEvent.ComunicadosPresionado -> viewModelScope.launch { _effect.send(HomeEffect.NavegarAComunicados) }
+            HomeEvent.AjustesPresionado -> viewModelScope.launch { _effect.send(HomeEffect.NavegarAAjustes) }
         }
     }
 
@@ -137,6 +161,7 @@ class HomeViewModel(
             etiquetaAccionPrincipal = when (rol) {
                 Rol.VENTAS -> "Registrar venta"
                 Rol.ACOPIADOR -> "Ver mi ruta"
+                Rol.CALIDAD -> "Analizar entregas"
                 else -> ""
             },
             etiquetaAccesoSecundario = when (rol) {
@@ -144,7 +169,7 @@ class HomeViewModel(
                 Rol.ACOPIADOR -> "Escanear QR"
                 else -> null
             },
-            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR,
+            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR || rol == Rol.CALIDAD,
         )
     }
 }

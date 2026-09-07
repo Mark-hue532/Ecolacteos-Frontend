@@ -1055,6 +1055,63 @@ Solución: (a) preferida, y la que ya resuelve §18.1: aceptar registroAcopioUui
                             ninguna vía disponible hoy en el contrato.
 ```
 
+```text
+ID: DATA-015
+Severidad: MEDIUM
+Endpoint: POST /api/ventas + /sync/ventas (Request) vs GET /api/ventas/{id} (Response)
+Campo: total, tipoQuesoNombre -- ausentes en VentaRequest, presentes solo en VentaResponse
+Backend: `total` es una columna GENERATED ALWAYS de Postgres (cantidad * precioUnitario, calculada
+         server-side) -- nunca viaja en el Request, no se puede enviar ni predecir con precisión
+         garantizada en el cliente. `tipoQuesoNombre` tampoco viaja en el Request (solo tipoQuesoId);
+         el servidor lo resuelve contra el catálogo al responder.
+Problema: `venta_local` (la tabla de captura offline, Fase 4) modela exactamente lo que el dispositivo
+          conoce en el momento de capturar: cantidad, precioUnitario, tipoQuesoId. No puede persistir
+          `total` ni `tipoQuesoNombre` porque esos valores no existen hasta que el servidor confirma.
+          `V-03` (Detalle de venta, Fase 7) necesita mostrar el total real -- un cálculo local
+          `cantidad × precioUnitario` podría no coincidir centavo a centavo con el GENERATED de Postgres
+          (redondeos, escala), y `CLAUDE.md §3.1` prohíbe esa clase de aproximación para cifras que
+          liquidan pagos.
+Impacto: bajo-medio. Una Venta recién capturada y todavía sin sincronizar no tiene `total` real que
+         mostrar -- `V-03` lo modela `nullable` y muestra "No disponible" hasta que la fila confirma
+         contra el servidor y trae el valor real. No bloquea la captura ni el flujo offline-first; solo
+         pospone un dato derivado hasta que existe una fuente de verdad.
+Solución: mitigación de cliente, ya implementada (Fase 7): `VentaDetalle.total`/`tipoQuesoNombre` quedan
+          `nullable`, poblados recién cuando la fila sincroniza y el servidor los devuelve. Ningún
+          cálculo local los aproxima mientras tanto.
+¿Backend change required?: NO -- es el comportamiento esperado de una columna GENERATED y un campo
+                            resuelto server-side. El cliente ya modela la ausencia temporal
+                            correctamente; no hace falta ningún cambio de contrato.
+```
+
+```text
+ID: DATA-016
+Severidad: MEDIUM
+Endpoint: GET /api/zonas/{zonaId}/ruta (A-01), GET /api/comunicados/zona/{zonaId} (S-06)
+Campo: (ausencia de) zonaId del usuario autenticado
+Backend: el JWT solo lleva sub/rol/usuarioId (§4 de este documento) -- ningún claim de zona. No existe
+         un endpoint tipo /api/usuarios/me que devuelva la zona asignada al ACOPIADOR autenticado. Ambos
+         endpoints de arriba exigen zonaId como path param, sin alternativa.
+Problema: `A-01 · Ruta del día` (Fase 8A) y `S-06 · Comunicados` (Fase 8B) necesitan la zona del
+          ACOPIADOR para pedir su ruta y sus comunicados, y el contrato no expone ese dato en ningún
+          lugar accesible desde el móvil.
+Impacto: medio. Sin mitigación, ninguna de las dos pantallas podría funcionar para el rol ACOPIADOR.
+Solución: (a) `A-01` (Fase 8A, aprobada por el usuario): heurística sobre `unidad_cache` -- la `Unidad`
+              cuya `responsableId` coincide con el usuario de la sesión activa
+              (`ObtenerZonaAsignadaUseCase`). Si hay 0 o más de una zona distinta entre esas `Unidad`, se
+              devuelve `null` y la pantalla muestra "no se pudo determinar tu zona" -- nunca inventa cuál
+              mostrar. Asume que cada ACOPIADOR es responsable de exactamente una `Unidad`, premisa no
+              verificada contra el modelo de datos real.
+          (b) `S-06` (Fase 8B): evita el problema por completo leyendo `comunicado_cache` +
+              `comunicado_zona_cache` (poblados por `GET /api/sync/cambios`, que no necesita `zonaId`) en
+              vez de llamar a `GET /api/comunicados/zona/{zonaId}` directo. Mismo criterio que ya se usó
+              para `V-01` en la Fase 7 -- leer del cache evita depender de un dato que el contrato no
+              expone.
+¿Backend change required?: RECOMENDADO -- exponer la zona del usuario autenticado (un claim en el JWT, o
+                            un endpoint /api/usuarios/me) cerraría el problema de raíz para `A-01` y
+                            dejaría de depender de la heurística sobre `unidad_cache`, cuya premisa no
+                            está verificada.
+```
+
 ---
 
 ## 11. Matriz maestra de compatibilidad

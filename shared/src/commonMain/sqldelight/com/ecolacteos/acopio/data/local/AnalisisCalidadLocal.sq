@@ -64,6 +64,17 @@ ORDER BY creado_en ASC;
 observarTodos:
 SELECT * FROM analisis_calidad_local WHERE usuario_id = :usuarioId ORDER BY creado_en DESC;
 
+-- Fase 8C (`C-04`, ONLINE+CACHE): degradado sin conectividad -- la propia captura de este dispositivo,
+-- ya referenciando un padre ajeno resuelto (`registro_acopio_server_id`). Sin `resultado`: eso lo calcula
+-- el servidor y esta fila, si todavía no es `SYNCED`, nunca lo tiene confirmado (ver `AnalisisCalidadDetalle`).
+-- `LIMIT 1`: en teoría un mismo `registroAcopioId` podría tener más de un análisis (no hay UNIQUE en el
+-- schema del backend), el más reciente es el candidato razonable para el degradado.
+obtenerPorRegistroAcopioServerId:
+SELECT * FROM analisis_calidad_local
+WHERE registro_acopio_server_id = :registroAcopioServerId
+ORDER BY creado_en DESC
+LIMIT 1;
+
 -- Fase 6 §6: ver el comentario en RegistroAcopioLocal.sq -- incluye PENDING_DEPENDENCY y FAILED
 -- permanente, a diferencia de obtenerPendientes/obtenerEnEsperaDeDependencia por separado.
 contarPendientes:
@@ -88,3 +99,10 @@ WHERE uuid_cliente = :uuidCliente;
 
 eliminarSincronizadosAntesDe:
 DELETE FROM analisis_calidad_local WHERE sync_status = 'SYNCED' AND sincronizado_en < :fecha;
+
+-- Fase 8B (S-05, regla 3) -- ver el comentario en `RegistroAcopioLocal.sq`. Sin `actualizar`: `C-03` (la
+-- pantalla de captura) es de la Fase 8C, no hay destino de edición todavía -- S-05 solo ofrece descartar
+-- para este recurso por ahora (ver checkpoint, decisión de alcance).
+descartarNoSincronizado:
+DELETE FROM analisis_calidad_local
+WHERE uuid_cliente = :uuidCliente AND usuario_id = :usuarioId AND sync_status <> 'SYNCED';
