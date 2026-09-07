@@ -7,6 +7,7 @@ import com.ecolacteos.acopio.domain.usecase.ResolverProveedorPorQrUseCase
 import com.ecolacteos.acopio.plataforma.EstadoPermiso
 import com.ecolacteos.acopio.plataforma.GestorPermisosFake
 import com.ecolacteos.acopio.plataforma.Permiso
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.responderJson
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpStatusCode
@@ -27,19 +28,23 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class EscanearQrViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios, permisos: GestorPermisosFake) = EscanearQrViewModel(
-        resolverProveedorPorQrUseCase = ResolverProveedorPorQrUseCase(fixture.catalogoRepository),
-        gestorPermisos = permisos,
+    private fun crearViewModel(fixture: FixtureRepositorios, permisos: GestorPermisosFake) = viewModels.registrar(
+        EscanearQrViewModel(
+            resolverProveedorPorQrUseCase = ResolverProveedorPorQrUseCase(fixture.catalogoRepository),
+            gestorPermisos = permisos,
+        ),
     )
 
     // 8: un QR presente en proveedor_cache no dispara ninguna llamada de red (a nivel ViewModel).

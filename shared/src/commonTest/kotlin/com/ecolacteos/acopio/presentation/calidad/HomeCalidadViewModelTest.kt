@@ -10,6 +10,7 @@ import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarEntregasConEstadoAnalisisUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.cuerpoCambiosVacio
 import com.ecolacteos.acopio.synchronization.responderJson
@@ -29,14 +30,16 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeCalidadViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     // 14: entregas con y sin analisis se distinguen correctamente.
@@ -68,12 +71,14 @@ class HomeCalidadViewModelTest {
             ),
         )
 
-        val viewModel = HomeCalidadViewModel(
-            observarEntregasConEstadoAnalisisUseCase = ObservarEntregasConEstadoAnalisisUseCase(
-                fixture.registroAcopioRepository, fixture.analisisCalidadRepository,
+        val viewModel = viewModels.registrar(
+            HomeCalidadViewModel(
+                observarEntregasConEstadoAnalisisUseCase = ObservarEntregasConEstadoAnalisisUseCase(
+                    fixture.registroAcopioRepository, fixture.analisisCalidadRepository,
+                ),
+                observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+                observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
             ),
-            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
         )
 
         viewModel.uiState.test {

@@ -5,6 +5,7 @@ import com.ecolacteos.acopio.domain.model.Comunicado
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.cuerpoCambiosVacio
 import com.ecolacteos.acopio.synchronization.responderJson
 import kotlinx.coroutines.Dispatchers
@@ -25,20 +26,24 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class ComunicadosViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios) = ComunicadosViewModel(
-        observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-        confirmacionesRecientesEnMemoria = ConfirmacionesRecientesEnMemoria(),
+    private fun crearViewModel(fixture: FixtureRepositorios) = viewModels.registrar(
+        ComunicadosViewModel(
+            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+            confirmacionesRecientesEnMemoria = ConfirmacionesRecientesEnMemoria(),
+        ),
     )
 
     // 12: fecha se formatea como LocalDateTime (dd/MM/yyyy HH:mm) -- trampa #10, nunca como LocalDate (perderia la hora).

@@ -11,6 +11,7 @@ import com.ecolacteos.acopio.domain.usecase.CrearVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
@@ -44,28 +45,32 @@ private val TIPO_QUESO_DE_PRUEBA = TipoQueso(
 @OptIn(ExperimentalCoroutinesApi::class)
 class RegistrarVentaViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     private fun crearViewModel(fixture: FixtureRepositorios, uuidClienteAEditar: String? = null): RegistrarVentaViewModel {
         fixture.catalogosLocal.reemplazarTiposQueso(listOf(TIPO_QUESO_DE_PRUEBA))
-        return RegistrarVentaViewModel(
-            crearVentaUseCase = CrearVentaUseCase(fixture.ventaRepository),
-            actualizarVentaUseCase = ActualizarVentaUseCase(fixture.ventaRepository),
-            ventaRepository = fixture.ventaRepository,
-            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-            borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
-            uuidClienteAEditar = uuidClienteAEditar,
-            reloj = fixture.reloj,
-            zona = TimeZone.UTC,
+        return viewModels.registrar(
+            RegistrarVentaViewModel(
+                crearVentaUseCase = CrearVentaUseCase(fixture.ventaRepository),
+                actualizarVentaUseCase = ActualizarVentaUseCase(fixture.ventaRepository),
+                ventaRepository = fixture.ventaRepository,
+                observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+                observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+                borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
+                uuidClienteAEditar = uuidClienteAEditar,
+                reloj = fixture.reloj,
+                zona = TimeZone.UTC,
+            ),
         )
     }
 

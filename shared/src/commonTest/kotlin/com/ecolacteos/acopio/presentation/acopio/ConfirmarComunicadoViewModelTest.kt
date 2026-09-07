@@ -9,6 +9,7 @@ import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.network.Endpoints
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.presentation.comun.ComunicadosViewModel
 import com.ecolacteos.acopio.presentation.comun.ConfirmacionesRecientesEnMemoria
 import com.ecolacteos.acopio.synchronization.ConnectivityObserverFake
@@ -32,14 +33,16 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class ConfirmarComunicadoViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     private val proveedor = Proveedor(
@@ -60,13 +63,15 @@ class ConfirmarComunicadoViewModelTest {
         fixture.catalogosLocal.reemplazarProveedores(listOf(proveedor))
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios, comunicadoId: String = "com-1") = ConfirmarComunicadoViewModel(
-        comunicadoId = comunicadoId,
-        confirmarComunicadoUseCase = ConfirmarComunicadoUseCase(fixture.comunicadoConfirmacionRepository),
-        buscarProveedorPorNombreUseCase = BuscarProveedorPorNombreUseCase(fixture.catalogoRepository),
-        observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-        confirmacionesRecientesEnMemoria = ConfirmacionesRecientesEnMemoria(),
+    private fun crearViewModel(fixture: FixtureRepositorios, comunicadoId: String = "com-1") = viewModels.registrar(
+        ConfirmarComunicadoViewModel(
+            comunicadoId = comunicadoId,
+            confirmarComunicadoUseCase = ConfirmarComunicadoUseCase(fixture.comunicadoConfirmacionRepository),
+            buscarProveedorPorNombreUseCase = BuscarProveedorPorNombreUseCase(fixture.catalogoRepository),
+            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+            confirmacionesRecientesEnMemoria = ConfirmacionesRecientesEnMemoria(),
+        ),
     )
 
     // 14: sin conexion la accion queda deshabilitada, no dispara ninguna llamada de red, y no se encola nada.
@@ -100,18 +105,22 @@ class ConfirmarComunicadoViewModelTest {
         }
         sembrarComunicado(fixture)
         val confirmaciones = ConfirmacionesRecientesEnMemoria()
-        val viewModelConfirmar = ConfirmarComunicadoViewModel(
-            comunicadoId = "com-1",
-            confirmarComunicadoUseCase = ConfirmarComunicadoUseCase(fixture.comunicadoConfirmacionRepository),
-            buscarProveedorPorNombreUseCase = BuscarProveedorPorNombreUseCase(fixture.catalogoRepository),
-            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-            confirmacionesRecientesEnMemoria = confirmaciones,
+        val viewModelConfirmar = viewModels.registrar(
+            ConfirmarComunicadoViewModel(
+                comunicadoId = "com-1",
+                confirmarComunicadoUseCase = ConfirmarComunicadoUseCase(fixture.comunicadoConfirmacionRepository),
+                buscarProveedorPorNombreUseCase = BuscarProveedorPorNombreUseCase(fixture.catalogoRepository),
+                observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+                observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+                confirmacionesRecientesEnMemoria = confirmaciones,
+            ),
         )
-        val viewModelComunicados = ComunicadosViewModel(
-            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-            confirmacionesRecientesEnMemoria = confirmaciones,
+        val viewModelComunicados = viewModels.registrar(
+            ComunicadosViewModel(
+                observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+                observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+                confirmacionesRecientesEnMemoria = confirmaciones,
+            ),
         )
 
         viewModelConfirmar.onEvent(ConfirmarComunicadoEvent.ProveedorSeleccionado(proveedor))

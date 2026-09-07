@@ -17,6 +17,7 @@ import com.ecolacteos.acopio.domain.usecase.ObtenerRegistrosDeProveedorUseCase
 import com.ecolacteos.acopio.domain.usecase.PadreRegistroAcopioElegible
 import com.ecolacteos.acopio.domain.usecase.estadoSincronizacionDe
 import com.ecolacteos.acopio.network.Endpoints
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.ResultadoCiclo
 import com.ecolacteos.acopio.synchronization.cuerpoCambiosVacio
 import com.ecolacteos.acopio.synchronization.cuerpoSync
@@ -45,26 +46,30 @@ private const val PROVEEDOR_ID = "prov-1"
 @OptIn(ExperimentalCoroutinesApi::class)
 class RegistrarAnalisisViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     private fun crearViewModel(
         fixture: FixtureRepositorios,
         registroAcopioUuidCliente: String? = null,
         registroAcopioServerId: String? = null,
-    ) = RegistrarAnalisisViewModel(
-        registroAcopioUuidCliente = registroAcopioUuidCliente,
-        registroAcopioServerId = registroAcopioServerId,
-        crearAnalisisCalidadUseCase = CrearAnalisisCalidadUseCase(fixture.analisisCalidadRepository),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-        borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
+    ) = viewModels.registrar(
+        RegistrarAnalisisViewModel(
+            registroAcopioUuidCliente = registroAcopioUuidCliente,
+            registroAcopioServerId = registroAcopioServerId,
+            crearAnalisisCalidadUseCase = CrearAnalisisCalidadUseCase(fixture.analisisCalidadRepository),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+            borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
+        ),
     )
 
     private fun sembrarCacheAjena(fixture: FixtureRepositorios, id: String = "srv-ajeno") {

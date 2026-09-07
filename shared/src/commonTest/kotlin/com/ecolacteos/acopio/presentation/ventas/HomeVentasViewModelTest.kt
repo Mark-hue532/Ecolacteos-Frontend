@@ -10,6 +10,7 @@ import com.ecolacteos.acopio.domain.model.Venta
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarVentasDelDiaUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.responderJson
 import io.ktor.client.engine.mock.respondError
@@ -41,19 +42,23 @@ private val AYER = LocalDate(2026, 9, 5)
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeVentasViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios): HomeVentasViewModel = HomeVentasViewModel(
-        observarVentasDelDiaUseCase = ObservarVentasDelDiaUseCase(fixture.ventaRepository, fixture.reloj, TimeZone.UTC),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+    private fun crearViewModel(fixture: FixtureRepositorios): HomeVentasViewModel = viewModels.registrar(
+        HomeVentasViewModel(
+            observarVentasDelDiaUseCase = ObservarVentasDelDiaUseCase(fixture.ventaRepository, fixture.reloj, TimeZone.UTC),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+        ),
     )
 
     // 6: aparicion optimista -- crear una venta y verla llegar por el Flow sin volver a consultar a mano.

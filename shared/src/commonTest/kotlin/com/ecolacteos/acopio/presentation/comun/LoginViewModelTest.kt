@@ -7,6 +7,7 @@ import com.ecolacteos.acopio.domain.ResultadoCierreSesion
 import com.ecolacteos.acopio.domain.Sesion
 import com.ecolacteos.acopio.domain.usecase.LoginUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.ConnectivityObserverFake
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -37,14 +38,16 @@ private class GestorSesionDeLogin(private val respuesta: () -> ApiResult<Sesion>
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     @Test
@@ -55,7 +58,7 @@ class LoginViewModelTest {
             error("no debería llamarse -- S-02 es online-only")
         }
         val conectividad = ConnectivityObserverFake(inicial = false)
-        val viewModel = LoginViewModel(LoginUseCase(gestorSesion), ObservarConectividadUseCase(conectividad))
+        val viewModel = viewModels.registrar(LoginViewModel(LoginUseCase(gestorSesion), ObservarConectividadUseCase(conectividad)))
 
         viewModel.onEvent(LoginEvent.EmailCambio("ana@ecolacteos.com"))
         viewModel.onEvent(LoginEvent.PasswordCambio("clave-valida"))
@@ -68,7 +71,7 @@ class LoginViewModelTest {
     @Test
     fun `un 401 nunca distingue si fallo el correo o la contrasena`() = runTest {
         val gestorSesion = GestorSesionDeLogin { ApiResult.Error(ApiError.NoAutorizado("Credenciales inválidas")) }
-        val viewModel = LoginViewModel(LoginUseCase(gestorSesion), ObservarConectividadUseCase(ConnectivityObserverFake(inicial = true)))
+        val viewModel = viewModels.registrar(LoginViewModel(LoginUseCase(gestorSesion), ObservarConectividadUseCase(ConnectivityObserverFake(inicial = true))))
 
         viewModel.onEvent(LoginEvent.EmailCambio("ana@ecolacteos.com"))
         viewModel.onEvent(LoginEvent.PasswordCambio("clave-cualquiera"))

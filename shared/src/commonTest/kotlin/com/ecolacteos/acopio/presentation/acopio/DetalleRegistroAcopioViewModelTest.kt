@@ -6,6 +6,7 @@ import com.ecolacteos.acopio.domain.Sesion
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleRegistroAcopioUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.responderJson
 import io.ktor.client.engine.mock.respondError
@@ -27,21 +28,25 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class DetalleRegistroAcopioViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios, id: String = "srv-1") = DetalleRegistroAcopioViewModel(
-        id = id,
-        obtenerDetalleRegistroAcopioUseCase = ObtenerDetalleRegistroAcopioUseCase(fixture.registroAcopioRepository),
-        observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-        gestorSesion = fixture.gestorSesion,
+    private fun crearViewModel(fixture: FixtureRepositorios, id: String = "srv-1") = viewModels.registrar(
+        DetalleRegistroAcopioViewModel(
+            id = id,
+            obtenerDetalleRegistroAcopioUseCase = ObtenerDetalleRegistroAcopioUseCase(fixture.registroAcopioRepository),
+            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+            gestorSesion = fixture.gestorSesion,
+        ),
     )
 
     // 12: fechaHora y sincronizadoEn se exponen etiquetadas por separado, nunca como una duracion entre ambas.

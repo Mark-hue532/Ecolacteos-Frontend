@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleAnalisisCalidadUseCase
 import com.ecolacteos.acopio.network.Endpoints
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.cuerpoCambiosVacio
 import com.ecolacteos.acopio.synchronization.responderJson
 import kotlinx.coroutines.Dispatchers
@@ -22,14 +23,16 @@ import kotlin.test.assertNull
 @OptIn(ExperimentalCoroutinesApi::class)
 class DetalleAnalisisCalidadViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     // 13: los parametros nulos se omiten (ni 0 ni "0.00"); un resultado desconocido se expone sin romper el estado.
@@ -45,9 +48,11 @@ class DetalleAnalisisCalidadViewModelTest {
                 responderJson(cuerpoCambiosVacio())
             }
         }
-        val viewModel = DetalleAnalisisCalidadViewModel(
-            registroAcopioId = "srv-1",
-            obtenerDetalleAnalisisCalidadUseCase = ObtenerDetalleAnalisisCalidadUseCase(fixture.analisisCalidadRepository),
+        val viewModel = viewModels.registrar(
+            DetalleAnalisisCalidadViewModel(
+                registroAcopioId = "srv-1",
+                obtenerDetalleAnalisisCalidadUseCase = ObtenerDetalleAnalisisCalidadUseCase(fixture.analisisCalidadRepository),
+            ),
         )
 
         viewModel.uiState.test {
