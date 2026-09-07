@@ -39,10 +39,11 @@ import org.koin.core.parameter.parametersOf
  */
 @Composable
 fun RegistrarAcopioScreen(
-    proveedorId: String,
+    proveedorId: String?,
+    uuidClienteAEditar: String?,
     onGuardadoConExito: () -> Unit,
     onNavegarAHistorial: (String) -> Unit,
-    viewModel: RegistrarAcopioViewModel = koinViewModel(parameters = { parametersOf(proveedorId) }),
+    viewModel: RegistrarAcopioViewModel = koinViewModel(parameters = { parametersOf(proveedorId.orEmpty(), uuidClienteAEditar) }),
 ) {
     val estado by viewModel.uiState.collectAsState()
 
@@ -62,7 +63,12 @@ fun RegistrarAcopioScreen(
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(Espaciado.l.dp)) {
-        item { Text("Registrar acopio", style = MaterialTheme.typography.headlineMedium) }
+        item {
+            Text(
+                if (estado.esEdicion) "Editar registro" else "Registrar acopio",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
 
         if (!estado.hayConexion) {
             item { BannerSinConexion(modifier = Modifier.padding(top = Espaciado.m.dp)) }

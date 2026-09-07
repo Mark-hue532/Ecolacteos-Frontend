@@ -81,3 +81,10 @@ WHERE uuid_cliente = :uuidCliente;
 
 eliminarSincronizadosAntesDe:
 DELETE FROM lote_produccion_local WHERE sync_status = 'SYNCED' AND sincronizado_en < :fecha;
+
+-- Fase 8B (S-05, regla 3) -- ver el comentario en `RegistroAcopioLocal.sq`. Sin `actualizar`: `P-03` es de
+-- la Fase 8D. El `LocalDataSource` borra primero las filas N:M de `lote_produccion_registro_local`
+-- (`eliminarPorLote`, ya existe) antes de esta -- no hay `ON DELETE CASCADE` declarado.
+descartarNoSincronizado:
+DELETE FROM lote_produccion_local
+WHERE uuid_cliente = :uuidCliente AND usuario_id = :usuarioId AND sync_status <> 'SYNCED';

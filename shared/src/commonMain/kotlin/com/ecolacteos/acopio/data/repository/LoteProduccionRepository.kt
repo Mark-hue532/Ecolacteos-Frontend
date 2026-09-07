@@ -32,6 +32,9 @@ interface LoteProduccionRepository {
     fun observarPendientes(): Flow<List<LoteProduccion>>
     fun reintentar(uuidCliente: String)
     suspend fun purgarSincronizados()
+
+    /** `S-05` (Fase 8B): descarta una fila no sincronizada de la sesión activa. Ver `CLAUDE.md §3.6`. */
+    suspend fun descartar(uuidCliente: String)
 }
 
 internal class LoteProduccionRepositoryImpl(
@@ -108,5 +111,10 @@ internal class LoteProduccionRepositoryImpl(
     override suspend fun purgarSincronizados() {
         val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
         local.eliminarSincronizadosDeUsuario(usuarioId)
+    }
+
+    override suspend fun descartar(uuidCliente: String) {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
+        local.descartarNoSincronizado(uuidCliente, usuarioId)
     }
 }

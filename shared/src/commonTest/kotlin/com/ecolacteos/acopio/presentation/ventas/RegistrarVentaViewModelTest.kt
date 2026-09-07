@@ -5,6 +5,7 @@ import com.ecolacteos.acopio.core.Decimal
 import com.ecolacteos.acopio.data.remote.dto.CicloCapital
 import com.ecolacteos.acopio.data.remote.dto.TipoClienteVenta
 import com.ecolacteos.acopio.domain.model.TipoQueso
+import com.ecolacteos.acopio.domain.usecase.ActualizarVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
@@ -53,13 +54,16 @@ class RegistrarVentaViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios): RegistrarVentaViewModel {
+    private fun crearViewModel(fixture: FixtureRepositorios, uuidClienteAEditar: String? = null): RegistrarVentaViewModel {
         fixture.catalogosLocal.reemplazarTiposQueso(listOf(TIPO_QUESO_DE_PRUEBA))
         return RegistrarVentaViewModel(
             crearVentaUseCase = CrearVentaUseCase(fixture.ventaRepository),
+            actualizarVentaUseCase = ActualizarVentaUseCase(fixture.ventaRepository),
+            ventaRepository = fixture.ventaRepository,
             observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
             observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
             borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
+            uuidClienteAEditar = uuidClienteAEditar,
             reloj = fixture.reloj,
             zona = TimeZone.UTC,
         )

@@ -102,6 +102,27 @@ class RegistroAcopioLocalDataSource(
     fun eliminarSincronizadosAntesDe(fecha: LocalDateTime) {
         queries.eliminarSincronizadosAntesDe(fecha)
     }
+
+    /** `S-05` (Fase 8B), la única forma de que trabajo no confirmado salga de la base (`CLAUDE.md §3.6`). */
+    fun descartarNoSincronizado(uuidCliente: String, usuarioId: String) {
+        queries.descartarNoSincronizado(uuidCliente = uuidCliente, usuarioId = usuarioId)
+    }
+
+    /** `S-05` "editar y reintentar" (Fase 8B) -- mismo `uuidCliente`, vuelve a `PENDING` con intentos en 0. */
+    fun actualizar(registro: RegistroAcopio) {
+        queries.actualizar(
+            proveedorId = registro.proveedorId,
+            unidadId = registro.unidadId,
+            fechaHora = registro.fechaHora,
+            litros = registro.litros,
+            gpsLat = registro.gpsLat,
+            gpsLng = registro.gpsLng,
+            motivoObservacionId = registro.motivoObservacionId,
+            litrosPorVoz = registro.litrosPorVoz,
+            uuidCliente = registro.uuidCliente,
+            usuarioId = registro.usuarioId,
+        )
+    }
 }
 
 private fun Registro_acopio_local.aDominio(): RegistroAcopio = RegistroAcopio(

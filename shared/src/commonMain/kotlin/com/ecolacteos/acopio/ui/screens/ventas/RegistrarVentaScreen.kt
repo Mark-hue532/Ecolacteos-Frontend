@@ -25,14 +25,20 @@ import com.ecolacteos.acopio.ui.components.CampoDecimal
 import com.ecolacteos.acopio.ui.components.SelectorCatalogo
 import com.ecolacteos.acopio.ui.theme.Espaciado
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
  * `V-02 · Registrar venta ★` (`MOBILE_SCREENS.md §8`). Destino de pantalla completa (`§2.1` regla 2). Al
  * guardar, vuelve hacia atrás con `Snackbar` -- acá delegado a [onGuardadoConExito], que el `NavGraph`
- * resuelve como `popBackStack()` + mensaje (`§2.1` regla 3).
+ * resuelve como `popBackStack()` + mensaje (`§2.1` regla 3). [uuidClienteAEditar] no nulo = `S-05` "editar
+ * y reintentar" (Fase 8B): precarga la fila existente en vez de arrancar en blanco.
  */
 @Composable
-fun RegistrarVentaScreen(onGuardadoConExito: () -> Unit, viewModel: RegistrarVentaViewModel = koinViewModel()) {
+fun RegistrarVentaScreen(
+    onGuardadoConExito: () -> Unit,
+    uuidClienteAEditar: String? = null,
+    viewModel: RegistrarVentaViewModel = koinViewModel(parameters = { parametersOf(uuidClienteAEditar) }),
+) {
     val estado by viewModel.uiState.collectAsState()
 
     LaunchedEffect(viewModel) {
@@ -44,7 +50,12 @@ fun RegistrarVentaScreen(onGuardadoConExito: () -> Unit, viewModel: RegistrarVen
     }
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(Espaciado.l.dp), verticalArrangement = Arrangement.spacedBy(Espaciado.m.dp)) {
-        item { Text("Registrar venta", style = MaterialTheme.typography.headlineMedium) }
+        item {
+            Text(
+                if (estado.esEdicion) "Editar venta" else "Registrar venta",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+        }
 
         if (!estado.hayConexion) {
             item { BannerSinConexion() }

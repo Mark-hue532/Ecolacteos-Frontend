@@ -35,6 +35,9 @@ interface AnalisisCalidadRepository {
     fun observarPendientes(): Flow<List<AnalisisCalidad>>
     fun reintentar(uuidCliente: String)
     suspend fun purgarSincronizados()
+
+    /** `S-05` (Fase 8B): descarta una fila no sincronizada de la sesión activa. Ver `CLAUDE.md §3.6`. */
+    suspend fun descartar(uuidCliente: String)
 }
 
 internal class AnalisisCalidadRepositoryImpl(
@@ -103,5 +106,10 @@ internal class AnalisisCalidadRepositoryImpl(
     override suspend fun purgarSincronizados() {
         val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
         local.eliminarSincronizadosDeUsuario(usuarioId)
+    }
+
+    override suspend fun descartar(uuidCliente: String) {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
+        local.descartarNoSincronizado(uuidCliente, usuarioId)
     }
 }

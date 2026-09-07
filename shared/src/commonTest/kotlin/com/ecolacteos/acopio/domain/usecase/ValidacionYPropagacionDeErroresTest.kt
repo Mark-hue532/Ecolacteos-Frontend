@@ -39,6 +39,8 @@ class ValidacionYPropagacionDeErroresTest {
         override fun reintentar(uuidCliente: String) = Unit
         override suspend fun purgarSincronizados() = Unit
         override suspend fun obtenerDetalle(uuidCliente: String): com.ecolacteos.acopio.domain.model.VentaDetalle? = null
+        override suspend fun actualizar(uuidCliente: String, datos: NuevaVenta): Boolean = error("no usado en este test")
+        override suspend fun descartar(uuidCliente: String) = error("no usado en este test")
     }
 
     private fun datosVenta(tipoCliente: TipoClienteVenta) = NuevaVenta(
@@ -76,6 +78,8 @@ class ValidacionYPropagacionDeErroresTest {
             override fun reintentar(uuidCliente: String) = Unit
             override suspend fun purgarSincronizados() = Unit
             override suspend fun obtenerDetalle(uuidCliente: String): com.ecolacteos.acopio.domain.model.VentaDetalle? = null
+            override suspend fun actualizar(uuidCliente: String, datos: NuevaVenta): Boolean = error("no usado en este test")
+            override suspend fun descartar(uuidCliente: String) = error("no usado en este test")
         }
         val useCase = CrearVentaUseCase(repository)
 

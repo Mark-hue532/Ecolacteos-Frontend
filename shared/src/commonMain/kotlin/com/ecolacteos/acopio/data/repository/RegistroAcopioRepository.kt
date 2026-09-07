@@ -90,6 +90,18 @@ interface RegistroAcopioRepository {
     /** Fuerza un reintento fuera del ciclo automático (`ReintentarManualUseCase`, `§5`). */
     fun reintentar(uuidCliente: String)
 
+    /**
+     * `S-05` "editar y reintentar" (Fase 8B): actualiza los campos capturados de una fila **no
+     * sincronizada** de la sesión activa y la vuelve a `PENDING` con `sync_attempts` en 0 -- mismo
+     * `uuidCliente`, la idempotencia del backend (`MOBILE_ARCHITECTURE.md §7`) hace que sea seguro.
+     * `false` si la fila no existe o no pertenece a la sesión activa -- la UI no debería llegar a este
+     * caso (`S-05` ya filtra por sesión), pero el Repository no confía ciegamente en el llamador.
+     */
+    suspend fun actualizar(uuidCliente: String, datos: NuevoRegistroAcopio): Boolean
+
+    /** `S-05` (Fase 8B): la única forma de que trabajo no confirmado salga de la base (`CLAUDE.md §3.6`). */
+    suspend fun descartar(uuidCliente: String)
+
     /** Logout con 0 pendientes (`§6`): borra el historial ya confirmado de la sesión activa. */
     suspend fun purgarSincronizados()
 
@@ -190,6 +202,32 @@ class RegistroAcopioRepositoryImpl(
     override fun reintentar(uuidCliente: String) {
         local.actualizarEstadoSync(uuidCliente, SyncStatus.PENDING, syncAttempts = 0, syncError = null, nextAttemptAt = null)
         syncEngine.solicitarSyncOportunista()
+    }
+
+    override suspend fun actualizar(uuidCliente: String, datos: NuevoRegistroAcopio): Boolean {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return false
+        val existente = local.obtenerPorUuidCliente(uuidCliente) ?: return false
+        if (existente.usuarioId != usuarioId || existente.syncStatus == SyncStatus.SYNCED) return false
+
+        local.actualizar(
+            existente.copy(
+                proveedorId = datos.proveedorId,
+                unidadId = datos.unidadId,
+                fechaHora = datos.fechaHora,
+                litros = datos.litros,
+                gpsLat = datos.gpsLat,
+                gpsLng = datos.gpsLng,
+                motivoObservacionId = datos.motivoObservacionId,
+                litrosPorVoz = datos.litrosPorVoz,
+            ),
+        )
+        syncEngine.solicitarSyncOportunista()
+        return true
+    }
+
+    override suspend fun descartar(uuidCliente: String) {
+        val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
+        local.descartarNoSincronizado(uuidCliente, usuarioId)
     }
 
     override suspend fun purgarSincronizados() {

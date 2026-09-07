@@ -1,15 +1,18 @@
 package com.ecolacteos.acopio.ui.screens.comun
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.ecolacteos.acopio.presentation.comun.EstadoSincronizacionEffect
 import com.ecolacteos.acopio.presentation.comun.EstadoSincronizacionEvent
 import com.ecolacteos.acopio.presentation.comun.EstadoSincronizacionViewModel
 import com.ecolacteos.acopio.presentation.comun.RecursoSyncUiState
@@ -24,8 +27,16 @@ import org.koin.compose.viewmodel.koinViewModel
  * esperando" **no** es un error (`§10.5`, trampa #9).
  */
 @Composable
-fun EstadoSincronizacionScreen(viewModel: EstadoSincronizacionViewModel = koinViewModel()) {
+fun EstadoSincronizacionScreen(onNavegarAPendientes: () -> Unit, viewModel: EstadoSincronizacionViewModel = koinViewModel()) {
     val estado by viewModel.uiState.collectAsState()
+
+    LaunchedEffect(viewModel) {
+        viewModel.effect.collect { efecto ->
+            when (efecto) {
+                EstadoSincronizacionEffect.NavegarAPendientes -> onNavegarAPendientes()
+            }
+        }
+    }
 
     Column(modifier = Modifier.fillMaxSize().padding(Espaciado.l.dp)) {
         if (!estado.hayConexion) {
@@ -60,6 +71,16 @@ fun EstadoSincronizacionScreen(viewModel: EstadoSincronizacionViewModel = koinVi
             habilitado = estado.hayConexion && !estado.sincronizandoAhora,
             modifier = Modifier.padding(top = Espaciado.l.dp),
         )
+
+        if (!estado.todoAlDia) {
+            Text(
+                "Ver pendientes",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = Espaciado.m.dp)
+                    .clickable { viewModel.onEvent(EstadoSincronizacionEvent.VerPendientesPresionado) },
+            )
+        }
     }
 }
 

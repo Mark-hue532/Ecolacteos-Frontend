@@ -8,7 +8,9 @@ import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.core.decimalDesdeTexto
 import com.ecolacteos.acopio.data.remote.dto.TipoClienteVenta
 import com.ecolacteos.acopio.data.repository.NuevaVenta
+import com.ecolacteos.acopio.data.repository.VentaRepository
 import com.ecolacteos.acopio.domain.model.TipoQueso
+import com.ecolacteos.acopio.domain.usecase.ActualizarVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
@@ -63,6 +65,8 @@ data class RegistrarVentaUiState(
     val guardando: Boolean = false,
     val hayConexion: Boolean = true,
     val hayBorradorParaRetomar: Boolean = false,
+    /** `S-05` "editar y reintentar" (Fase 8B): sin borrador para este camino. */
+    val esEdicion: Boolean = false,
 ) {
     val puedeGuardar: Boolean
         get() = !guardando && cantidadTexto.isNotBlank() && precioUnitarioTexto.isNotBlank() &&
@@ -100,16 +104,22 @@ private data class BorradorVenta(
  */
 class RegistrarVentaViewModel(
     private val crearVentaUseCase: CrearVentaUseCase,
+    private val actualizarVentaUseCase: ActualizarVentaUseCase,
+    private val ventaRepository: VentaRepository,
     private val observarCatalogosUseCase: ObservarCatalogosUseCase,
     private val observarConectividadUseCase: ObservarConectividadUseCase,
     private val borradorFormularioUseCase: BorradorFormularioUseCase,
+    /** No nulo = `S-05` "editar y reintentar" (Fase 8B): precarga la fila existente, nunca crea una nueva. */
+    private val uuidClienteAEditar: String? = null,
     private val reloj: Clock = Clock.System,
     private val zona: TimeZone = TimeZone.currentSystemDefault(),
 ) : ViewModel() {
 
     private val fecha: LocalDate = ahoraComoFechaHora(reloj, zona).date
 
-    private val _uiState = MutableStateFlow(RegistrarVentaUiState(fechaTexto = fecha.formateada()))
+    private val _uiState = MutableStateFlow(
+        RegistrarVentaUiState(fechaTexto = fecha.formateada(), esEdicion = uuidClienteAEditar != null),
+    )
     val uiState: StateFlow<RegistrarVentaUiState> = _uiState.asStateFlow()
 
     private val _effect = Channel<RegistrarVentaEffect>(Channel.BUFFERED)
@@ -117,20 +127,50 @@ class RegistrarVentaViewModel(
 
     private var borradorPendiente: BorradorVenta? = null
     private var jobDebounceBorrador: Job? = null
+    private var tipoQuesoIdDeLaFilaAEditar: String? = null
 
     init {
         observarCatalogosUseCase.tiposQueso()
-            .onEach { tipos -> _uiState.update { it.copy(tiposQueso = tipos) } }
+            .onEach { tipos ->
+                _uiState.update { it.copy(tiposQueso = tipos) }
+                val tipoQuesoId = tipoQuesoIdDeLaFilaAEditar
+                if (tipoQuesoId != null) {
+                    tipos.firstOrNull { it.id == tipoQuesoId }
+                        ?.let { encontrado -> _uiState.update { it.copy(tipoQuesoSeleccionado = encontrado) } }
+                }
+            }
             .launchIn(viewModelScope)
 
         observarConectividadUseCase()
             .onEach { conectado -> _uiState.update { it.copy(hayConexion = conectado) } }
             .launchIn(viewModelScope)
 
-        val payload = borradorFormularioUseCase.obtener(PANTALLA_BORRADOR)
-        if (payload != null) {
-            borradorPendiente = payload.aBorradorOrNull()
-            if (borradorPendiente != null) _uiState.update { it.copy(hayBorradorParaRetomar = true) }
+        if (uuidClienteAEditar != null) {
+            cargarParaEdicion(uuidClienteAEditar)
+        } else {
+            val payload = borradorFormularioUseCase.obtener(PANTALLA_BORRADOR)
+            if (payload != null) {
+                borradorPendiente = payload.aBorradorOrNull()
+                if (borradorPendiente != null) _uiState.update { it.copy(hayBorradorParaRetomar = true) }
+            }
+        }
+    }
+
+    private fun cargarParaEdicion(uuidCliente: String) {
+        viewModelScope.launch {
+            val existente = ventaRepository.observarPendientes().first().firstOrNull { it.uuidCliente == uuidCliente }
+                ?: return@launch
+            tipoQuesoIdDeLaFilaAEditar = existente.tipoQuesoId
+            val tipoQueso = _uiState.value.tiposQueso.firstOrNull { it.id == existente.tipoQuesoId }
+            _uiState.update {
+                it.copy(
+                    tipoClienteSeleccionado = existente.tipoCliente,
+                    tipoQuesoSeleccionado = tipoQueso,
+                    cantidadTexto = existente.cantidad.toString(),
+                    precioUnitarioTexto = existente.precioUnitario.aTextoConEscala(ESCALA_PRECIO),
+                )
+            }
+            recalcularSubtotal()
         }
     }
 
@@ -235,25 +275,38 @@ class RegistrarVentaViewModel(
             return
         }
 
+        // DATA-010: mismo chequeo defensivo que CrearVentaUseCase (que ActualizarVentaUseCase no repite,
+        // ver su doc) -- UNKNOWN nunca debería llegar acá (el selector solo ofrece los 3 valores reales),
+        // pero es el fallback de deserialización de Fase 2, no algo de lo que el ViewModel deba confiar ciegamente.
+        if (estado.tipoClienteSeleccionado == TipoClienteVenta.UNKNOWN) {
+            _uiState.update { it.copy(errorTipoCliente = "Seleccioná un tipo de cliente válido") }
+            return
+        }
+
         _uiState.update { it.copy(guardando = true, errorGeneral = null) }
+        val datos = NuevaVenta(
+            fecha = fecha,
+            tipoCliente = estado.tipoClienteSeleccionado!!,
+            tipoQuesoId = estado.tipoQuesoSeleccionado!!.id,
+            cantidad = cantidad!!,
+            precioUnitario = precio!!,
+        )
+
         viewModelScope.launch {
-            val resultado = crearVentaUseCase(
-                NuevaVenta(
-                    fecha = fecha,
-                    tipoCliente = estado.tipoClienteSeleccionado!!,
-                    tipoQuesoId = estado.tipoQuesoSeleccionado!!.id,
-                    cantidad = cantidad!!,
-                    precioUnitario = precio!!,
-                ),
-            )
-            when (resultado) {
-                is ResultadoCrearVenta.Creada -> {
-                    borradorFormularioUseCase.descartar(PANTALLA_BORRADOR)
-                    _uiState.update { it.copy(guardando = false) }
-                    _effect.send(RegistrarVentaEffect.GuardadoConExito)
-                }
-                ResultadoCrearVenta.TipoClienteInvalido -> _uiState.update {
-                    it.copy(guardando = false, errorTipoCliente = "Seleccioná un tipo de cliente válido")
+            if (uuidClienteAEditar != null) {
+                actualizarVentaUseCase(uuidClienteAEditar, datos)
+                _uiState.update { it.copy(guardando = false) }
+                _effect.send(RegistrarVentaEffect.GuardadoConExito)
+            } else {
+                when (crearVentaUseCase(datos)) {
+                    is ResultadoCrearVenta.Creada -> {
+                        borradorFormularioUseCase.descartar(PANTALLA_BORRADOR)
+                        _uiState.update { it.copy(guardando = false) }
+                        _effect.send(RegistrarVentaEffect.GuardadoConExito)
+                    }
+                    ResultadoCrearVenta.TipoClienteInvalido -> _uiState.update {
+                        it.copy(guardando = false, errorTipoCliente = "Seleccioná un tipo de cliente válido")
+                    }
                 }
             }
         }

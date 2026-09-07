@@ -1,11 +1,14 @@
 package com.ecolacteos.acopio.di
 
 import com.ecolacteos.acopio.domain.VerificadorPendientes
+import com.ecolacteos.acopio.domain.usecase.ActualizarRegistroAcopioUseCase
+import com.ecolacteos.acopio.domain.usecase.ActualizarVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.AnexarCorreccionUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
 import com.ecolacteos.acopio.domain.usecase.BuscarProveedorPorNombreUseCase
 import com.ecolacteos.acopio.domain.usecase.ConfirmarComunicadoUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearAnalisisCalidadUseCase
+import com.ecolacteos.acopio.domain.usecase.DescartarPendienteUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearLoteProduccionUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearVentaUseCase
@@ -71,6 +74,11 @@ val useCaseModule = module {
     single { ObtenerDetalleRegistroAcopioUseCase(get()) }
     single { ObtenerZonaAsignadaUseCase(catalogoRepository = get(), gestorSesion = get()) }
     single { ObservarProveedoresVisitadosHoyUseCase(get()) }
+
+    // Fase 8B (PROMPT_FASE_08B.md §5): S-05, S-07 y el modo edición de A-04/V-02.
+    single { DescartarPendienteUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get(), loteProduccionRepository = get(), ventaRepository = get()) }
+    single { ActualizarRegistroAcopioUseCase(get()) }
+    single { ActualizarVentaUseCase(get()) }
 
     single {
         VerificarPendientesUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get(), loteProduccionRepository = get(), ventaRepository = get())

@@ -111,6 +111,18 @@ class LoteProduccionLocalDataSource(
             queries.eliminarSincronizadosDeUsuario(usuarioId)
         }
     }
+
+    /**
+     * Ver [RegistroAcopioLocalDataSource.descartarNoSincronizado]. `S-05`, Fase 8B. Sin `ON DELETE CASCADE`
+     * declarado (ver `LoteProduccionRegistroLocal.sq`) -- borra primero las filas N:M, igual criterio que
+     * [eliminarSincronizadosDeUsuario].
+     */
+    fun descartarNoSincronizado(uuidCliente: String, usuarioId: String) {
+        queries.transaction {
+            registroQueries.eliminarPorLote(uuidCliente)
+            queries.descartarNoSincronizado(uuidCliente = uuidCliente, usuarioId = usuarioId)
+        }
+    }
 }
 
 private fun Lote_produccion_local.aDominio(): LoteProduccion = LoteProduccion(

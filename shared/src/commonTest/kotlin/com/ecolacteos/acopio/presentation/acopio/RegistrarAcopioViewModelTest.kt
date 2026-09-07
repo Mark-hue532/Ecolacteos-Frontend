@@ -6,6 +6,7 @@ import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.domain.model.MotivoObservacion
 import com.ecolacteos.acopio.domain.model.Proveedor
 import com.ecolacteos.acopio.domain.model.Unidad
+import com.ecolacteos.acopio.domain.usecase.ActualizarRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
@@ -93,14 +94,18 @@ class RegistrarAcopioViewModelTest {
             ),
         ),
         proveedorId: String = PROVEEDOR_ID,
+        uuidClienteAEditar: String? = null,
     ) = RegistrarAcopioViewModel(
         proveedorId = proveedorId,
         crearRegistroAcopioUseCase = CrearRegistroAcopioUseCase(fixture.registroAcopioRepository),
+        actualizarRegistroAcopioUseCase = ActualizarRegistroAcopioUseCase(fixture.registroAcopioRepository),
+        registroAcopioRepository = fixture.registroAcopioRepository,
         observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
         observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
         borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
         gestorPermisos = permisos,
         proveedorUbicacion = ubicacion,
+        uuidClienteAEditar = uuidClienteAEditar,
         reloj = fixture.reloj,
         zona = ZONA,
     )

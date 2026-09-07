@@ -11,12 +11,15 @@ import com.ecolacteos.acopio.domain.usecase.ObservarResumenSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.SincronizarAhoraUseCase
 import com.ecolacteos.acopio.presentation.formateada
 import com.ecolacteos.acopio.synchronization.EstadoSync
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /** Desglose de un recurso (`MOBILE_SCREENS.md §4`, `S-04`): "cuántos PENDING, PENDING_DEPENDENCY, SYNCING y FAILED". */
@@ -46,6 +49,12 @@ data class EstadoSincronizacionUiState(
 
 sealed interface EstadoSincronizacionEvent {
     data object SincronizarAhoraPresionado : EstadoSincronizacionEvent
+    data object VerPendientesPresionado : EstadoSincronizacionEvent
+}
+
+sealed interface EstadoSincronizacionEffect {
+    /** `§4`: "VerPendientesPresionado → S-05" -- sin cablear en la Fase 7 porque `S-05` no existía todavía. */
+    data object NavegarAPendientes : EstadoSincronizacionEffect
 }
 
 /**
@@ -62,6 +71,9 @@ class EstadoSincronizacionViewModel(
 
     private val _uiState = MutableStateFlow(EstadoSincronizacionUiState())
     val uiState: StateFlow<EstadoSincronizacionUiState> = _uiState.asStateFlow()
+
+    private val _effect = Channel<EstadoSincronizacionEffect>(Channel.BUFFERED)
+    val effect: Flow<EstadoSincronizacionEffect> = _effect.receiveAsFlow()
 
     init {
         combine(
@@ -85,6 +97,8 @@ class EstadoSincronizacionViewModel(
     fun onEvent(evento: EstadoSincronizacionEvent) {
         when (evento) {
             EstadoSincronizacionEvent.SincronizarAhoraPresionado -> viewModelScope.launch { sincronizarAhoraUseCase() }
+            EstadoSincronizacionEvent.VerPendientesPresionado ->
+                viewModelScope.launch { _effect.send(EstadoSincronizacionEffect.NavegarAPendientes) }
         }
     }
 

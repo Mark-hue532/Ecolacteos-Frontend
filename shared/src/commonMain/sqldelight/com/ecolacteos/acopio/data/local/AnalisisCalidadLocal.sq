@@ -88,3 +88,10 @@ WHERE uuid_cliente = :uuidCliente;
 
 eliminarSincronizadosAntesDe:
 DELETE FROM analisis_calidad_local WHERE sync_status = 'SYNCED' AND sincronizado_en < :fecha;
+
+-- Fase 8B (S-05, regla 3) -- ver el comentario en `RegistroAcopioLocal.sq`. Sin `actualizar`: `C-03` (la
+-- pantalla de captura) es de la Fase 8C, no hay destino de edición todavía -- S-05 solo ofrece descartar
+-- para este recurso por ahora (ver checkpoint, decisión de alcance).
+descartarNoSincronizado:
+DELETE FROM analisis_calidad_local
+WHERE uuid_cliente = :uuidCliente AND usuario_id = :usuarioId AND sync_status <> 'SYNCED';

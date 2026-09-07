@@ -89,6 +89,11 @@ class AnalisisCalidadLocalDataSource(
     fun eliminarSincronizadosDeUsuario(usuarioId: String) {
         queries.eliminarSincronizadosDeUsuario(usuarioId)
     }
+
+    /** Ver [RegistroAcopioLocalDataSource.descartarNoSincronizado]. `S-05`, Fase 8B. */
+    fun descartarNoSincronizado(uuidCliente: String, usuarioId: String) {
+        queries.descartarNoSincronizado(uuidCliente = uuidCliente, usuarioId = usuarioId)
+    }
 }
 
 private fun Analisis_calidad_local.aDominio(): AnalisisCalidad = AnalisisCalidad(
