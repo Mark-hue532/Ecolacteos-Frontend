@@ -2,6 +2,8 @@ import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.plugin.mpp.DisableCacheInKotlinVersion
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeCacheApi
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -26,12 +28,7 @@ kotlin {
 
     jvm() // permite correr commonTest en JVM puro sin emulador/simulador (ver MOBILE_ARCHITECTURE.md §14 -- Testing)
 
-    // `iosX64()` (Mac Intel) se retiró en la Fase 7 (`PROMPT_FASE_07.md §6`, checkpoint): Compose
-    // Multiplatform 1.12.0 no publica variante `iosX64` para ningún artefacto de `org.jetbrains.compose.*`
-    // (confirmado contra Maven Central -- solo `iosArm64`/`iosSimulatorArm64`), baja real de upstream
-    // (Apple discontinuó Macs Intel; Kotlin/Native viene deprecando ese target), no un problema de versión.
-    // `verificacion-ios.yml` corre en `macos-14` (Apple Silicon) y solo ejecutó siempre
-    // `iosSimulatorArm64Test` -- nunca dependió de `iosX64`, así que este cambio no reduce cobertura de CI.
+    // Configuración de los targets de iOS con desactivación de caché nativa
     listOf(
         iosArm64(),
         iosSimulatorArm64(),
@@ -39,6 +36,13 @@ kotlin {
         iosTarget.binaries.framework {
             baseName = "shared"
             isStatic = true
+        }
+        iosTarget.binaries.all {
+            @OptIn(KotlinNativeCacheApi::class)
+            disableNativeCache(
+                version = DisableCacheInKotlinVersion.2_3_20,
+                reason = "Bug del compilador con navigation-common 2.9.0-alpha16: RouteDecoder ya definido al construir el caché del klib",
+            )
         }
     }
 
