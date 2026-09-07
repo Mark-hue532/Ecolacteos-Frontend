@@ -1,5 +1,11 @@
 package com.ecolacteos.acopio.di
 
+import com.ecolacteos.acopio.presentation.acopio.BuscarProveedorViewModel
+import com.ecolacteos.acopio.presentation.acopio.DetalleRegistroAcopioViewModel
+import com.ecolacteos.acopio.presentation.acopio.EscanearQrViewModel
+import com.ecolacteos.acopio.presentation.acopio.HistorialProveedorViewModel
+import com.ecolacteos.acopio.presentation.acopio.RegistrarAcopioViewModel
+import com.ecolacteos.acopio.presentation.acopio.RutaDelDiaViewModel
 import com.ecolacteos.acopio.presentation.comun.EstadoSincronizacionViewModel
 import com.ecolacteos.acopio.presentation.comun.HomeViewModel
 import com.ecolacteos.acopio.presentation.comun.LoginViewModel
@@ -32,4 +38,43 @@ val presentationModule = module {
     viewModel { HomeVentasViewModel(get(), get()) }
     viewModel { RegistrarVentaViewModel(crearVentaUseCase = get(), observarCatalogosUseCase = get(), observarConectividadUseCase = get(), borradorFormularioUseCase = get()) }
     viewModel { params -> DetalleVentaViewModel(uuidCliente = params.get(), obtenerDetalleVentaUseCase = get(), observarCatalogosUseCase = get()) }
+
+    // Fase 8A (PROMPT_FASE_08A.md §2): las 6 pantallas de ACOPIADOR.
+    viewModel {
+        RutaDelDiaViewModel(
+            obtenerRutaDelDiaUseCase = get(),
+            obtenerZonaAsignadaUseCase = get(),
+            observarProveedoresVisitadosHoyUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { EscanearQrViewModel(resolverProveedorPorQrUseCase = get(), gestorPermisos = get()) }
+    viewModel { BuscarProveedorViewModel(buscarProveedorPorNombreUseCase = get(), observarCatalogosUseCase = get()) }
+    viewModel { params ->
+        RegistrarAcopioViewModel(
+            proveedorId = params.get(),
+            crearRegistroAcopioUseCase = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+            borradorFormularioUseCase = get(),
+            gestorPermisos = get(),
+            proveedorUbicacion = get(),
+        )
+    }
+    viewModel { params ->
+        HistorialProveedorViewModel(
+            proveedorId = params.get(),
+            observarHistorialProveedorUseCase = get(),
+            obtenerRegistrosDeProveedorUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        DetalleRegistroAcopioViewModel(
+            id = params.get(),
+            obtenerDetalleRegistroAcopioUseCase = get(),
+            observarCatalogosUseCase = get(),
+            gestorSesion = get(),
+        )
+    }
 }

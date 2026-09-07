@@ -4,6 +4,7 @@ import com.ecolacteos.acopio.core.Decimal
 import com.ecolacteos.acopio.core.aTextoConEscala
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
 
 /**
  * Formateadores de UI (`MOBILE_SCREENS.md §10.1`, §10.2`). Viven en `presentation/` -- no en `core/` -- a
@@ -20,6 +21,13 @@ fun LocalDate.formateada(): String = "${dayOfMonth.dosDigitos()}/${monthNumber.d
 
 /** `dd/MM/yyyy HH:mm` (`§10.2`), tal cual llega -- nunca convertida de zona (`§10.3`). Ej. `04/09/2026 16:20`. */
 fun LocalDateTime.formateada(): String = "${date.formateada()} ${hour.dosDigitos()}:${minute.dosDigitos()}"
+
+/**
+ * `HH:mm` (`§10.2`, `A-01`). Ej. `14:30`. Agregada en la Fase 8A -- `horaEstimada` es el primer campo
+ * `LocalTime` que llega a la capa de presentación; `§10.1` regla 3 sigue aplicando: un `horaEstimada` nulo
+ * nunca se formatea acá, se omite en el `ViewModel` antes de llegar a esta función (nunca `"--:--"`).
+ */
+fun LocalTime.formateada(): String = "${hour.dosDigitos()}:${minute.dosDigitos()}"
 
 private fun Int.dosDigitos(): String = toString().padStart(2, '0')
 
