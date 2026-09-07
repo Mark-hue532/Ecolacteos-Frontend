@@ -47,6 +47,10 @@ class RegistroAcopioLocalDataSource(
     fun obtenerPorUuidCliente(uuidCliente: String): RegistroAcopio? =
         queries.obtenerPorUuidCliente(uuidCliente).executeAsOneOrNull()?.aDominio()
 
+    /** Fallback local de `A-06` cuando el detalle remoto no está disponible -- ver `RegistroAcopioRepository`. */
+    fun obtenerPorServerId(serverId: String): RegistroAcopio? =
+        queries.obtenerPorServerId(serverId).executeAsOneOrNull()?.aDominio()
+
     fun obtenerPendientes(usuarioId: String, ahora: LocalDateTime): List<RegistroAcopio> =
         queries.obtenerPendientes(usuarioId, ahora).executeAsList().map { it.aDominio() }
 

@@ -3,6 +3,7 @@ package com.ecolacteos.acopio.di
 import com.ecolacteos.acopio.domain.VerificadorPendientes
 import com.ecolacteos.acopio.domain.usecase.AnexarCorreccionUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
+import com.ecolacteos.acopio.domain.usecase.BuscarProveedorPorNombreUseCase
 import com.ecolacteos.acopio.domain.usecase.ConfirmarComunicadoUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearAnalisisCalidadUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearLoteProduccionUseCase
@@ -16,11 +17,14 @@ import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarEstadoSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarHistorialProveedorUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarPendientesUseCase
+import com.ecolacteos.acopio.domain.usecase.ObservarProveedoresVisitadosHoyUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarResumenSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarVentasDelDiaUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerRegistrosDeProveedorUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerRutaDelDiaUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerZonaAsignadaUseCase
 import com.ecolacteos.acopio.domain.usecase.RefrescarSesionUseCase
 import com.ecolacteos.acopio.domain.usecase.ReintentarManualUseCase
 import com.ecolacteos.acopio.domain.usecase.ResolverProveedorPorQrUseCase
@@ -61,6 +65,12 @@ val useCaseModule = module {
     single { ObservarVentasDelDiaUseCase(get()) }
     single { ObtenerDetalleVentaUseCase(get()) }
     single { BorradorFormularioUseCase(get()) }
+
+    // Fase 8A (PROMPT_FASE_08A.md §0): los 4 UseCase que faltaban para ACOPIADOR.
+    single { BuscarProveedorPorNombreUseCase(get()) }
+    single { ObtenerDetalleRegistroAcopioUseCase(get()) }
+    single { ObtenerZonaAsignadaUseCase(catalogoRepository = get(), gestorSesion = get()) }
+    single { ObservarProveedoresVisitadosHoyUseCase(get()) }
 
     single {
         VerificarPendientesUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get(), loteProduccionRepository = get(), ventaRepository = get())

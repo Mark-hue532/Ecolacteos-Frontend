@@ -6,10 +6,12 @@ import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.core.generarUuidV4
 import com.ecolacteos.acopio.data.local.datasource.RegistroAcopioCacheLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.RegistroAcopioLocalDataSource
+import com.ecolacteos.acopio.data.remote.dto.RegistroAcopioResponse
 import com.ecolacteos.acopio.data.remote.dto.RegistroAcopioResumenResponse
 import com.ecolacteos.acopio.domain.GestorSesion
 import com.ecolacteos.acopio.domain.model.Origen
 import com.ecolacteos.acopio.domain.model.RegistroAcopio
+import com.ecolacteos.acopio.domain.model.RegistroAcopioDetalle
 import com.ecolacteos.acopio.domain.model.RegistroAcopioReferencia
 import com.ecolacteos.acopio.domain.model.SyncStatus
 import com.ecolacteos.acopio.network.ApiClient
@@ -76,6 +78,14 @@ interface RegistroAcopioRepository {
      * padre en `crear()` de los hijos (`§4.2.a`), que sí debe fallar explícitamente.
      */
     suspend fun obtenerRegistrosDeProveedor(proveedorId: String): List<RegistroAcopioReferencia>
+
+    /**
+     * `A-06` (`MOBILE_SCREENS.md §5`, ONLINE+CACHE): `GET /api/registros-acopio/{id}` primero, `id` es el
+     * `server_id`, no el `uuidCliente`. Si falla, degrada -- en orden -- a `registro_acopio_cache` (si `id`
+     * ya se vio en `A-05` como ajeno) y a `registro_acopio_local` (si `id` es el `server_id` de un registro
+     * **propio** ya sincronizado). `null` solo si ninguna de las tres fuentes tiene nada para este `id`.
+     */
+    suspend fun obtenerDetalle(id: String): RegistroAcopioDetalle?
 
     /** Fuerza un reintento fuera del ciclo automático (`ReintentarManualUseCase`, `§5`). */
     fun reintentar(uuidCliente: String)
@@ -157,6 +167,26 @@ class RegistroAcopioRepositoryImpl(
         return cacheLocal.obtenerPorProveedor(proveedorId)
     }
 
+    override suspend fun obtenerDetalle(id: String): RegistroAcopioDetalle? {
+        when (val respuesta = apiClient.get<RegistroAcopioResponse>(Endpoints.registroAcopioPorId(id))) {
+            is ApiResult.Exito -> {
+                val ahora = ahoraComoFechaHora(reloj, zona)
+                // Oportunista: ya que se tiene el detalle completo, se enriquece registro_acopio_cache
+                // (origen DETALLE) para que una próxima consulta offline de este mismo id degrade mejor.
+                cacheLocal.upsert(respuesta.datos.aReferenciaCacheDeDetalle(ahora))
+                return respuesta.datos.aDetalleCompleto()
+            }
+            is ApiResult.Error -> {
+                // ONLINE+CACHE (§5): sin red o con error, se degrada -- primero al cache de ajenos
+                // (poblado por A-05), después al propio si este id es el server_id de un registro local
+                // ya sincronizado. Nunca se propaga el error acá.
+                cacheLocal.obtenerPorServerId(id)?.let { return it.aDetalleParcialDesdeCache() }
+                local.obtenerPorServerId(id)?.let { return it.aDetalleDesdeLocalPropio() }
+                return null
+            }
+        }
+    }
+
     override fun reintentar(uuidCliente: String) {
         local.actualizarEstadoSync(uuidCliente, SyncStatus.PENDING, syncAttempts = 0, syncError = null, nextAttemptAt = null)
         syncEngine.solicitarSyncOportunista()
@@ -185,4 +215,67 @@ class RegistroAcopioRepositoryImpl(
         origen = Origen.RESUMEN,
         actualizadoEn = actualizadoEn,
     )
+
+    private fun RegistroAcopioResponse.aReferenciaCacheDeDetalle(actualizadoEn: LocalDateTime): RegistroAcopioReferencia =
+        RegistroAcopioReferencia(
+            id = id,
+            uuidCliente = uuidCliente,
+            proveedorId = proveedorId,
+            proveedorNombre = proveedorNombre,
+            fechaHora = fechaHora,
+            litros = litros,
+            tieneObservacion = motivoObservacion != null,
+            origen = Origen.DETALLE,
+            actualizadoEn = actualizadoEn,
+        )
 }
+
+private fun RegistroAcopioResponse.aDetalleCompleto(): RegistroAcopioDetalle = RegistroAcopioDetalle(
+    id = id,
+    uuidCliente = uuidCliente,
+    proveedorId = proveedorId,
+    proveedorNombre = proveedorNombre,
+    unidadId = unidadId,
+    fechaHora = fechaHora,
+    litros = litros,
+    gpsLat = gpsLat,
+    gpsLng = gpsLng,
+    motivoObservacionId = null, // el Response solo trae la descripción -- ver NAME_MISMATCH, §5.2
+    motivoObservacionTexto = motivoObservacion,
+    litrosPorVoz = litrosPorVoz,
+    sincronizadoEn = sincronizadoEn,
+)
+
+/** Degradado desde `registro_acopio_cache` (ajeno, poblado por `A-05`) -- ver `RegistroAcopioDetalle`. */
+private fun RegistroAcopioReferencia.aDetalleParcialDesdeCache(): RegistroAcopioDetalle = RegistroAcopioDetalle(
+    id = id,
+    uuidCliente = uuidCliente,
+    proveedorId = proveedorId,
+    proveedorNombre = proveedorNombre,
+    unidadId = null,
+    fechaHora = fechaHora,
+    litros = litros,
+    gpsLat = null,
+    gpsLng = null,
+    motivoObservacionId = null,
+    motivoObservacionTexto = null,
+    litrosPorVoz = null,
+    sincronizadoEn = null,
+)
+
+/** Degradado desde `registro_acopio_local` (propio, ya sincronizado) -- ver `RegistroAcopioDetalle`. */
+private fun RegistroAcopio.aDetalleDesdeLocalPropio(): RegistroAcopioDetalle = RegistroAcopioDetalle(
+    id = serverId ?: uuidCliente,
+    uuidCliente = uuidCliente,
+    proveedorId = proveedorId,
+    proveedorNombre = null,
+    unidadId = unidadId,
+    fechaHora = fechaHora,
+    litros = litros,
+    gpsLat = gpsLat,
+    gpsLng = gpsLng,
+    motivoObservacionId = motivoObservacionId,
+    motivoObservacionTexto = null,
+    litrosPorVoz = litrosPorVoz,
+    sincronizadoEn = sincronizadoEn,
+)

@@ -28,7 +28,19 @@ runner macOS.
      todavía documentada en los tres documentos de diseño).
    - Reemplazar el `ContentView.swift`/`iOSApp.swift` que genera el asistente de Xcode por los dos archivos
      que ya están en esta carpeta (o copiarles el contenido si Xcode exige regenerarlos).
-3. **Configurar el `Framework Search Path`** del target de la app apuntando al output de
+3. **Agregar las claves de uso de permisos al `Info.plist`** (Fase 8A, `MOBILE_SCREENS.md §12`) -- sin
+   `iosApp/.xcodeproj` no hay dónde ponerlas todavía, pero `A-02` (cámara) y `A-04` (ubicación) las van a
+   necesitar apenas exista el proyecto, o la app crashea al pedir el permiso en vez de mostrar el diálogo:
+   ```xml
+   <key>NSCameraUsageDescription</key>
+   <string>Se usa para escanear el código QR del proveedor al registrar un acopio.</string>
+   <key>NSLocationWhenInUseUsageDescription</key>
+   <string>Se usa para guardar la ubicación de cada registro de acopio. Es opcional: podés registrar sin ubicación.</string>
+   ```
+   El texto exacto lo define quien arme el proyecto -- estos son los mensajes de referencia, coherentes con
+   `§12` regla 4 ("ninguno de los dos es obligatorio para operar"): la redacción no debe sonar a que el
+   registro depende del permiso.
+4. **Configurar el `Framework Search Path`** del target de la app apuntando al output de
    `shared` para el framework `shared.framework` (Build Settings → Framework Search Paths), típicamente:
    ```text
    $(SRCROOT)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
@@ -36,7 +48,7 @@ runner macOS.
    (la ruta exacta depende de si se usa el plugin `kotlin("multiplatform")` con `embedAndSign` directo o el
    plugin de CocoaPods -- este proyecto usa la integración directa de Gradle, sin CocoaPods, ver
    `shared/build.gradle.kts`).
-4. **Agregar una fase de build ("Run Script")** en el target de la app, **antes** de "Compile Sources", que
+5. **Agregar una fase de build ("Run Script")** en el target de la app, **antes** de "Compile Sources", que
    invoque la tarea de Gradle que genera y firma el framework:
    ```bash
    cd "$SRCROOT/.."
@@ -46,9 +58,9 @@ runner macOS.
    `binaries.framework { baseName = "shared" }` (ya configurado en `shared/build.gradle.kts`). Necesita las
    variables de entorno que Xcode inyecta (`CONFIGURATION`, `SDK_NAME`, etc.), por lo que **no se puede
    invocar a mano fuera de una build de Xcode** con resultados equivalentes.
-5. **Deployment target 15.0** también en el target de la app (Build Settings → iOS Deployment Target),
+6. **Deployment target 15.0** también en el target de la app (Build Settings → iOS Deployment Target),
    coherente con `shared/build.gradle.kts`.
-6. Verificar que el esquema (`Scheme`) del proyecto compila y corre en el simulador
+7. Verificar que el esquema (`Scheme`) del proyecto compila y corre en el simulador
    (`iosSimulatorArm64`, ya que los runners de CI son Apple Silicon).
 
 ## Qué NO hacer

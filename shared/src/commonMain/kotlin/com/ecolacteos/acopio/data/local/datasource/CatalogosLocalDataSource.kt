@@ -71,6 +71,22 @@ class CatalogosLocalDataSource(
         proveedorQueries.selectAll().asFlow().mapToList(dispatchers.io).map { filas -> filas.map { it.aDominio() } }
 
     /**
+     * Fase 8A (`A-02`): agrega/actualiza un único proveedor resuelto por `GET /api/proveedores/qr/{codigoQr}`
+     * sin tocar el resto de la tabla -- a diferencia de [reemplazarProveedores] (reemplazo completo de
+     * `/sync/cambios`), nunca borra nada.
+     */
+    fun upsertProveedor(fila: Proveedor) {
+        proveedorQueries.upsert(
+            id = fila.id,
+            nombre = fila.nombre,
+            zonaActualId = fila.zonaActualId,
+            zonaActualNombre = fila.zonaActualNombre,
+            codigoQr = fila.codigoQr,
+            actualizadoEn = fila.actualizadoEn,
+        )
+    }
+
+    /**
      * Logout (Fase 6 §6, C-09 RNF-12): `proveedor_cache` es una de las 3 tablas con datos personales de
      * proveedores que `MOBILE_ARCHITECTURE.md §4` exige borrar siempre al cerrar sesión. Reusa el mismo
      * `deleteAll` que ya existía para el reemplazo de catálogo -- acá no hace falta transacción porque no

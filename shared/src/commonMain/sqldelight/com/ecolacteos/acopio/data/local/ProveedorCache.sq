@@ -18,5 +18,12 @@ insert:
 INSERT INTO proveedor_cache (id, nombre, zona_actual_id, zona_actual_nombre, codigo_qr, actualizado_en)
 VALUES (:id, :nombre, :zonaActualId, :zonaActualNombre, :codigoQr, :actualizadoEn);
 
+-- Fase 8A (A-02): agrega/actualiza UN proveedor resuelto por `GET /api/proveedores/qr/{codigoQr}`, sin
+-- tocar el resto de la tabla -- a diferencia de `insert` (usado solo por el reemplazo completo de
+-- `/sync/cambios`), esto NUNCA debe ir precedido de un `deleteAll` (rompería el resto del catálogo).
+upsert:
+INSERT OR REPLACE INTO proveedor_cache (id, nombre, zona_actual_id, zona_actual_nombre, codigo_qr, actualizado_en)
+VALUES (:id, :nombre, :zonaActualId, :zonaActualNombre, :codigoQr, :actualizadoEn);
+
 selectAll:
 SELECT * FROM proveedor_cache ORDER BY nombre ASC;

@@ -135,9 +135,13 @@ incompatible, parás y lo reportás en vez de "actualizar a la que funcione".
 | kotlinx-serialization | `1.11.0` |
 | kotlinx-datetime | `0.8.0` |
 | ionspin bignum | `0.3.10` |
-| androidx.lifecycle | `2.11.0` |
+| androidx.lifecycle (grupo Google, Android-only) | `2.11.0` |
+| org.jetbrains.androidx.lifecycle (`ViewModel` multiplataforma, Fase 7) | `2.9.6` — grupo y tren de versiones distinto del anterior; no lo actualices junto con `androidx.lifecycle` |
+| navigation-compose (Fase 7) | `2.9.0-alpha16` — versión exigida por `org.jetbrains.androidx.lifecycle 2.9.6` de este Compose Multiplatform |
+| koin-compose / koin-compose-viewmodel (Fase 7) | `4.2.2` — mismo tren que `Koin` |
+| androidx-activity-compose (Fase 7, solo `androidApp`) | `1.11.0` |
 | Turbine | `1.2.1` |
-| minSdk / compileSdk / targetSdk | `26` / `36` / `36` |
+| minSdk / androidCompileSdk / androidTargetSdk | `26` / `37` / `36` — `compileSdk` subió en la Fase 7 (lo exigen los artefactos Android de Compose 1.12.0); `targetSdk` no cambió |
 | iOS deployment target | `15.0` |
 
 ---
@@ -195,6 +199,7 @@ decidida y aprobada antes de cerrar la Fase 2.
 | Evidencia fotográfica | **Diferida a v2** por decisión de producto | No implementar captura de foto en v1 |
 | Roundtrip real de Keychain en CI (`SecureTokenStorageIosTest`, iOS) | **Abierto, aceptado a propósito en el checkpoint de Fase 3** — los 4 tests están en `@Ignore`. `SecItemAdd`/`SecItemUpdate` fallaron en `iosSimulatorArm64Test` en 3 intentos (runs #7, #8, #11 de `verificacion-ios.yml`); la causa raíz nunca se identificó, el `@Ignore` (commit `0e2c148`) solo puso el CI en verde. El criterio de aceptación #2 de `PROMPT_FASE_03.md` sigue sin cumplirse de fondo | Bloquea la confianza real en persistencia de sesión en iOS. Retomar cuando alguien tenga acceso a los logs del runner o a un Mac para reproducir |
 | Roundtrip real de `NativeSqliteDriver` en CI (`crearDriverDeTest`/iOS, Fase 4) | **Abierto, sin verificar en esta sesión (Windows)** — en Windows, `compileTestKotlinIos{Arm64,X64,SimulatorArm64}` **sí corrieron y compilaron en verde** (Kotlin/Native genera klibs contra su propio SDK de Apple embebido, sin necesitar Xcode). Lo que **no** corrió, por falta de toolchain de Xcode/macOS: `linkDebugFrameworkIos*`/`linkReleaseFrameworkIos*` quedaron `SKIPPED`, y las tareas `iosX64Test`/`iosSimulatorArm64Test` (las que de verdad *ejecutan* el `commonTest` de CRUD/roundtrip/restart contra SQLite nativo) quedaron `disabled` — nunca se intentaron. Es decir: la compilación (errores de tipos, firmas `expect`/`actual`) está verificada; el comportamiento real de `NativeSqliteDriver` en tiempo de ejecución, no | Bloquea la confianza real en la capa SQLite en iOS hasta que `verificacion-ios.yml` corra `iosSimulatorArm64Test` en verde. Retomar revisando ese run de CI para la Fase 4 |
+| `venta_local` no persiste `total` ni `tipoQuesoNombre` (`DATA-015`) | **Abierto, mitigado en Fase 7** — ambos son de solo lectura del servidor (`total` es columna `GENERATED ALWAYS` de Postgres; `tipoQuesoNombre` no viaja en el Request). `VentaDetalle` los modela `nullable` y `V-03` los muestra como "No disponible" hasta confirmar contra el servidor — **nunca** un cálculo local `cantidad × precioUnitario` | `V-01`/`V-03` (Fase 7) y cualquier pantalla futura que liste `Venta` desde `venta_local`. No bloquea; documentar en `MOBILE_DATA_MAPPING.md §10` sigue pendiente |
 
 ---
 
@@ -203,8 +208,10 @@ decidida y aprobada antes de cerrar la Fase 2.
 El equipo desarrolla en **Windows**. Los targets iOS de Kotlin/Native **solo compilan en macOS** (necesitan
 la toolchain de Xcode; es restricción de Apple, no de Kotlin). Consecuencias permanentes del proyecto:
 
-- Los cuatro targets se declaran **siempre** en `shared/build.gradle.kts`, sin condicionales por host. El
-  código de `commonMain` tiene que ser multiplataforma correcto desde el día 1.
+- Los cuatro targets (`androidTarget`, `jvm`, `iosArm64`, `iosSimulatorArm64`) se declaran **siempre** en
+  `shared/build.gradle.kts`, sin condicionales por host. El código de `commonMain` tiene que ser
+  multiplataforma correcto desde el día 1. `iosX64` (Mac Intel) se retiró en la Fase 7: Compose
+  Multiplatform 1.12.0 no publica esa variante para sus artefactos.
 - ❌ **`commonMain` nunca importa `java.*` ni `javax.*`.** Compilaría local y rompería en iOS sin que nadie
   se entere hasta meses después. Ante la duda, buscá la alternativa de `kotlin.*` o `kotlinx.*`, o hacelo
   `expect`/`actual`.

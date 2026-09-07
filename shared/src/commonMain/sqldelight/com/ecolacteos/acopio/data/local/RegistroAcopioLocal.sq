@@ -37,6 +37,12 @@ INSERT INTO registro_acopio_local (
 obtenerPorUuidCliente:
 SELECT * FROM registro_acopio_local WHERE uuid_cliente = :uuidCliente;
 
+-- Fase 8A (A-06): fallback local del propio dispositivo cuando `GET /api/registros-acopio/{id}` falla sin
+-- conexión -- ver `RegistroAcopioRepository.obtenerDetalle`. `server_id` puede repetirse en teoría (nunca
+-- en la práctica: lo asigna el motor de sync uno a uno), por eso LIMIT 1 en vez de una PK.
+obtenerPorServerId:
+SELECT * FROM registro_acopio_local WHERE server_id = :serverId LIMIT 1;
+
 -- Candidatas a enviar en un ciclo de sync (ajustado en Fase 5, ver checkpoint):
 --  · PENDING          -> nunca intentada (next_attempt_at NULL) o con backoff ya vencido.
 --  · SYNCING          -> huérfana: la app murió a mitad de vuelo, o la respuesta omitió el ítem

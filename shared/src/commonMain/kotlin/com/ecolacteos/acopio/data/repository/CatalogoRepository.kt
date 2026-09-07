@@ -1,9 +1,11 @@
 package com.ecolacteos.acopio.data.repository
 
+import com.ecolacteos.acopio.core.ApiError
 import com.ecolacteos.acopio.core.ApiResult
 import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.data.local.datasource.CatalogosLocalDataSource
 import com.ecolacteos.acopio.data.local.datasource.RutaZonaLocalDataSource
+import com.ecolacteos.acopio.data.remote.dto.ProveedorPublicoResponse
 import com.ecolacteos.acopio.data.remote.dto.RutaProveedorOrdenResponse
 import com.ecolacteos.acopio.domain.model.Comunicado
 import com.ecolacteos.acopio.domain.model.MotivoObservacion
@@ -18,8 +20,24 @@ import com.ecolacteos.acopio.network.Endpoints
 import com.ecolacteos.acopio.synchronization.SyncEngine
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlin.time.Clock
+
+/**
+ * Resultado de resolver un QR (`A-02`, `MOBILE_SCREENS.md §5`) -- distingue los tres caminos del diagrama
+ * de flujo del documento, cada uno con una UI distinta. Nunca colapsa "no encontrado" y "sin señal para
+ * consultar" en el mismo caso: son mensajes y acciones diferentes.
+ */
+sealed interface ResultadoResolucionQr {
+    data class Encontrado(val proveedor: Proveedor) : ResultadoResolucionQr
+
+    /** 404 real del backend -- el código no corresponde a ningún proveedor. */
+    data object NoEncontrado : ResultadoResolucionQr
+
+    /** No está en `proveedor_cache` y no hay conexión para consultar `GET /api/proveedores/qr/{codigoQr}`. */
+    data object SinSenalParaConsultar : ResultadoResolucionQr
+}
 
 /**
  * Catálogos (`PROMPT_FASE_06.md §4.3`): proveedores, unidades, motivos, tipos de queso, precio vigente,
@@ -50,11 +68,12 @@ interface CatalogoRepository {
     suspend fun obtenerRutaDelDia(zonaId: String): List<RutaProveedorOrden>
 
     /**
-     * Escaneo de QR (`§5`, fila "Escanear QR de proveedor"): **resuelve contra SQLite primero**, sin
-     * llamado de red -- clasificación READ-CACHE "offline real", tiene que funcionar con cero conectividad.
-     * Un proveedor nuevo que todavía no bajó por `/sync/cambios` se resuelve recién en el próximo ciclo.
+     * Escaneo de QR (`A-02`, `MOBILE_SCREENS.md §5`): **resuelve contra SQLite primero, sin llamado de
+     * red** -- clasificación OFFLINE REAL, tiene que funcionar con cero conectividad. Solo si el código no
+     * está en `proveedor_cache` intenta `GET /api/proveedores/qr/{codigoQr}`; un 200 se guarda en cache
+     * (fila nueva, sin tocar el resto de la tabla) antes de devolverlo. Ver [ResultadoResolucionQr].
      */
-    suspend fun resolverProveedorPorQr(codigoQr: String): Proveedor?
+    suspend fun resolverProveedorPorQr(codigoQr: String): ResultadoResolucionQr
 
     /**
      * Logout (`§6`, C-09 RNF-12): `proveedor_cache` y `ruta_zona_cache` son 2 de las 3 tablas con datos
@@ -97,15 +116,33 @@ class CatalogoRepositoryImpl(
         return rutaZonaLocal.obtenerPorZona(zonaId)
     }
 
-    override suspend fun resolverProveedorPorQr(codigoQr: String): Proveedor? =
-        observarProveedores().first().firstOrNull { it.codigoQr == codigoQr }
+    override suspend fun resolverProveedorPorQr(codigoQr: String): ResultadoResolucionQr {
+        val enCache = observarProveedores().first().firstOrNull { it.codigoQr == codigoQr }
+        if (enCache != null) return ResultadoResolucionQr.Encontrado(enCache)
+
+        return when (val respuesta = apiClient.get<ProveedorPublicoResponse>(Endpoints.proveedorPorQr(codigoQr))) {
+            is ApiResult.Exito -> {
+                val proveedor = respuesta.datos.aDominio(ahoraComoFechaHora(reloj, zona))
+                catalogosLocal.upsertProveedor(proveedor)
+                ResultadoResolucionQr.Encontrado(proveedor)
+            }
+            is ApiResult.Error -> when (respuesta.error) {
+                is ApiError.NoEncontrado -> ResultadoResolucionQr.NoEncontrado
+                // Cualquier otro fallo (sin conexión, timeout, 5xx) se trata igual que "sin señal para
+                // consultar" -- el documento (§5) solo distingue 200/404 de "no hay conexión"; un 5xx real
+                // en pleno escaneo es un caso de borde que el contrato no cubre, y degradarlo al mismo
+                // mensaje que "sin señal" es más seguro que inventar un tercer mensaje sin especificar.
+                else -> ResultadoResolucionQr.SinSenalParaConsultar
+            }
+        }
+    }
 
     override fun borrarDatosPersonales() {
         catalogosLocal.borrarProveedores()
         rutaZonaLocal.borrarTodo()
     }
 
-    private fun RutaProveedorOrdenResponse.aDominio(zonaId: String, actualizadoEn: kotlinx.datetime.LocalDateTime): RutaProveedorOrden =
+    private fun RutaProveedorOrdenResponse.aDominio(zonaId: String, actualizadoEn: LocalDateTime): RutaProveedorOrden =
         RutaProveedorOrden(
             zonaId = zonaId,
             proveedorId = proveedorId,
@@ -114,4 +151,14 @@ class CatalogoRepositoryImpl(
             horaEstimada = horaEstimada,
             actualizadoEn = actualizadoEn,
         )
+
+    /** Mismo DTO que `CambiosResponse.proveedores` (`MOBILE_DATA_MAPPING.md §5.6`) -- ver `ProveedorPublicoResponse`. */
+    private fun ProveedorPublicoResponse.aDominio(actualizadoEn: LocalDateTime): Proveedor = Proveedor(
+        id = id,
+        nombre = nombre,
+        zonaActualId = zonaActualId,
+        zonaActualNombre = zonaActualNombre,
+        codigoQr = codigoQr,
+        actualizadoEn = actualizadoEn,
+    )
 }

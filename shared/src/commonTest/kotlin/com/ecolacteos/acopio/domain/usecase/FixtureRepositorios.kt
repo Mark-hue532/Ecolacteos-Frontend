@@ -64,17 +64,40 @@ class FixtureRepositorios(
     private val zona = TimeZone.UTC
     private val database = crearAcopioDatabase(crearDriverDeTest())
 
-    val registrosLocal = RegistroAcopioLocalDataSource(database.registroAcopioLocalQueries, DispatcherProviderDeTest)
-    val analisisLocal = AnalisisCalidadLocalDataSource(database.analisisCalidadLocalQueries, DispatcherProviderDeTest)
+    val registrosLocal = RegistroAcopioLocalDataSource(
+        database.registroAcopioLocalQueries,
+        DispatcherProviderDeTest,
+    )
+
+    val analisisLocal = AnalisisCalidadLocalDataSource(
+        database.analisisCalidadLocalQueries,
+        DispatcherProviderDeTest,
+    )
+
     val lotesLocal = LoteProduccionLocalDataSource(
         database.loteProduccionLocalQueries,
         database.loteProduccionRegistroLocalQueries,
         DispatcherProviderDeTest,
     )
-    val ventasLocal = VentaLocalDataSource(database.ventaLocalQueries, DispatcherProviderDeTest)
-    val borradorFormularioLocal = BorradorFormularioLocalDataSource(database.borradorFormularioQueries)
-    val cacheLocal = RegistroAcopioCacheLocalDataSource(database.registroAcopioCacheQueries, DispatcherProviderDeTest)
-    val rutaZonaLocal = RutaZonaLocalDataSource(database.rutaZonaCacheQueries)
+
+    val ventasLocal = VentaLocalDataSource(
+        database.ventaLocalQueries,
+        DispatcherProviderDeTest,
+    )
+
+    val borradorFormularioLocal = BorradorFormularioLocalDataSource(
+        database.borradorFormularioQueries,
+    )
+
+    val cacheLocal = RegistroAcopioCacheLocalDataSource(
+        database.registroAcopioCacheQueries,
+        DispatcherProviderDeTest,
+    )
+
+    val rutaZonaLocal = RutaZonaLocalDataSource(
+        database.rutaZonaCacheQueries,
+    )
+
     val catalogosLocal = CatalogosLocalDataSource(
         database.proveedorCacheQueries,
         database.unidadCacheQueries,
@@ -88,15 +111,28 @@ class FixtureRepositorios(
     )
 
     val rutasPedidas = mutableListOf<String>()
-    private val apiConfig = ApiConfig(entorno = Entorno.DEV, baseUrl = "https://api.test")
+
+    private val apiConfig = ApiConfig(
+        entorno = Entorno.DEV,
+        baseUrl = "https://api.test",
+    )
+
     val apiClient = ApiClient(
-        HttpClient(
-            MockEngine { request ->
-                rutasPedidas += request.url.encodedPath
-                manejador(request)
-            },
-        ) {
-            configurarPluginsComunes(apiConfig, TokenProviderEnMemoria("token-de-prueba"), debug = false)
+        HttpClient(MockEngine) {
+            engine {
+                addHandler { request ->
+                    rutasPedidas += request.url.encodedPath
+                    manejador(request)
+                }
+
+                dispatcher = kotlinx.coroutines.Dispatchers.Unconfined
+            }
+
+            configurarPluginsComunes(
+                apiConfig,
+                TokenProviderEnMemoria("token-de-prueba"),
+                debug = false,
+            )
         },
         apiConfig,
     )
@@ -124,24 +160,80 @@ class FixtureRepositorios(
      * `RepositorioCreacionTest`. `fixture.syncEngine` (arriba, sin envolver) es el que los tests llaman a
      * mano para controlar ese punto.
      */
-    private val syncEngineParaRepositorios: SyncEngine = SyncEngineSinOportunista(syncEngine)
+    private val syncEngineParaRepositorios: SyncEngine =
+        SyncEngineSinOportunista(syncEngine)
 
-    private val resolutor = ResolutorPadreRegistroAcopio(registrosLocal, cacheLocal, apiClient, reloj, zona)
+    private val resolutor = ResolutorPadreRegistroAcopio(
+        registrosLocal,
+        cacheLocal,
+        apiClient,
+        reloj,
+        zona,
+    )
 
     val registroAcopioRepository: RegistroAcopioRepository =
-        RegistroAcopioRepositoryImpl(gestorSesion, registrosLocal, cacheLocal, apiClient, syncEngineParaRepositorios, reloj, zona)
+        RegistroAcopioRepositoryImpl(
+            gestorSesion,
+            registrosLocal,
+            cacheLocal,
+            apiClient,
+            syncEngineParaRepositorios,
+            reloj,
+            zona,
+        )
+
     val ventaRepository: VentaRepository =
-        VentaRepositoryImpl(gestorSesion, ventasLocal, syncEngineParaRepositorios, apiClient, reloj, zona)
+        VentaRepositoryImpl(
+            gestorSesion,
+            ventasLocal,
+            syncEngineParaRepositorios,
+            apiClient,
+            reloj,
+            zona,
+        )
+
     val borradorFormularioRepository: BorradorFormularioRepository =
-        BorradorFormularioRepositoryImpl(borradorFormularioLocal, reloj, zona)
+        BorradorFormularioRepositoryImpl(
+            borradorFormularioLocal,
+            reloj,
+            zona,
+        )
+
     val analisisCalidadRepository: AnalisisCalidadRepository =
-        AnalisisCalidadRepositoryImpl(gestorSesion, analisisLocal, resolutor, syncEngineParaRepositorios, reloj, zona)
+        AnalisisCalidadRepositoryImpl(
+            gestorSesion,
+            analisisLocal,
+            resolutor,
+            syncEngineParaRepositorios,
+            reloj,
+            zona,
+        )
+
     val loteProduccionRepository: LoteProduccionRepository =
-        LoteProduccionRepositoryImpl(gestorSesion, lotesLocal, resolutor, syncEngineParaRepositorios, reloj, zona)
+        LoteProduccionRepositoryImpl(
+            gestorSesion,
+            lotesLocal,
+            resolutor,
+            syncEngineParaRepositorios,
+            reloj,
+            zona,
+        )
+
     val catalogoRepository: CatalogoRepository =
-        CatalogoRepositoryImpl(catalogosLocal, rutaZonaLocal, apiClient, syncEngineParaRepositorios, reloj, zona)
-    val correccionRegistroRepository: CorreccionRegistroRepository = CorreccionRegistroRepositoryImpl(apiClient)
-    val comunicadoConfirmacionRepository: ComunicadoConfirmacionRepository = ComunicadoConfirmacionRepositoryImpl(apiClient)
+        CatalogoRepositoryImpl(
+            catalogosLocal,
+            rutaZonaLocal,
+            apiClient,
+            syncEngineParaRepositorios,
+            reloj,
+            zona,
+        )
+
+    val correccionRegistroRepository: CorreccionRegistroRepository =
+        CorreccionRegistroRepositoryImpl(apiClient)
+
+    val comunicadoConfirmacionRepository: ComunicadoConfirmacionRepository =
+        ComunicadoConfirmacionRepositoryImpl(apiClient)
 
     val verificarPendientes = VerificarPendientesUseCase(
         registroAcopioRepository,
@@ -149,6 +241,7 @@ class FixtureRepositorios(
         loteProduccionRepository,
         ventaRepository,
     )
+
     val logout = LogoutUseCase(
         gestorSesion,
         verificarPendientes,
@@ -159,11 +252,17 @@ class FixtureRepositorios(
         catalogoRepository,
     )
 
-    fun cuantasVecesSePidio(ruta: String): Int = rutasPedidas.count { it == ruta }
+    fun cuantasVecesSePidio(ruta: String): Int =
+        rutasPedidas.count { it == ruta }
 }
 
-/** Ver el comentario de [FixtureRepositorios.syncEngineParaRepositorios] -- por qué existe este envoltorio. */
-private class SyncEngineSinOportunista(private val real: SyncEngine) : SyncEngine by real {
+/**
+ * Ver el comentario de [FixtureRepositorios.syncEngineParaRepositorios] -- por qué existe este envoltorio.
+ */
+private class SyncEngineSinOportunista(
+    private val real: SyncEngine,
+) : SyncEngine by real {
+
     override fun solicitarSyncOportunista() {
         // No-op a propósito.
     }

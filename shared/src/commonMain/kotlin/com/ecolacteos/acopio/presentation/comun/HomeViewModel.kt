@@ -29,6 +29,8 @@ data class HomeUiState(
     val nombre: String = "",
     val rol: Rol = Rol.UNKNOWN,
     val etiquetaAccionPrincipal: String = "",
+    /** `null` -> sin acceso secundario para este rol (ej. CALIDAD/PRODUCCION/RECEPCION todavía, Fase 8C-8E). */
+    val etiquetaAccesoSecundario: String? = null,
     val accionPrincipalDisponible: Boolean = false,
     val resumenSync: ResumenSync = ResumenSync(),
     val ultimoSyncTexto: String? = null,
@@ -50,14 +52,18 @@ sealed interface HomeEffect {
     /** Acceso secundario del rol (`§4`: "Accesos secundarios del rol") -- para VENTAS, ver el día. */
     data object NavegarAHomeVentas : HomeEffect
     data object NavegarAEstadoSincronizacion : HomeEffect
+
+    // Fase 8A -- ACOPIADOR (MOBILE_SCREENS.md §5).
+    data object NavegarARutaAcopio : HomeEffect
+    data object NavegarAEscanearQrAcopio : HomeEffect
 }
 
 private const val VENTANA_DESACTUALIZADO_HORAS = 24L
 
 /**
- * Solo la vertical de VENTAS tiene pantalla propia esta fase (`PROMPT_FASE_07.md §2`, `A-`/`C-`/`P-`/`R-`
- * son Fase 8) -- para cualquier otro rol, [HomeUiState.accionPrincipalDisponible] queda en `false` y la UI
- * lo muestra sin acción (nunca una pantalla a medias, trampa #1 de `§3`).
+ * VENTAS (Fase 7) y ACOPIADOR (Fase 8A) tienen acción principal propia -- para cualquier otro rol,
+ * [HomeUiState.accionPrincipalDisponible] queda en `false` y la UI lo muestra sin acción (nunca una
+ * pantalla a medias, trampa #1 de `PROMPT_FASE_07.md §3`).
  */
 class HomeViewModel(
     private val gestorSesion: GestorSesion,
@@ -93,14 +99,28 @@ class HomeViewModel(
 
     fun onEvent(evento: HomeEvent) {
         when (evento) {
-            HomeEvent.AccionPrincipalPresionada -> if (_uiState.value.accionPrincipalDisponible) {
-                viewModelScope.launch { _effect.send(HomeEffect.NavegarARegistrarVenta) }
-            }
-            HomeEvent.AccesoSecundarioPresionado -> if (_uiState.value.accionPrincipalDisponible) {
-                viewModelScope.launch { _effect.send(HomeEffect.NavegarAHomeVentas) }
-            }
+            HomeEvent.AccionPrincipalPresionada -> emitirSiHabilitado(
+                when (_uiState.value.rol) {
+                    Rol.VENTAS -> HomeEffect.NavegarARegistrarVenta
+                    Rol.ACOPIADOR -> HomeEffect.NavegarARutaAcopio
+                    else -> null
+                },
+            )
+            HomeEvent.AccesoSecundarioPresionado -> emitirSiHabilitado(
+                when (_uiState.value.rol) {
+                    Rol.VENTAS -> HomeEffect.NavegarAHomeVentas
+                    Rol.ACOPIADOR -> HomeEffect.NavegarAEscanearQrAcopio
+                    else -> null
+                },
+            )
             HomeEvent.EstadoSyncPresionado -> viewModelScope.launch { _effect.send(HomeEffect.NavegarAEstadoSincronizacion) }
             HomeEvent.SincronizarPresionado -> viewModelScope.launch { sincronizarAhoraUseCase() }
+        }
+    }
+
+    private fun emitirSiHabilitado(efecto: HomeEffect?) {
+        if (efecto != null && _uiState.value.accionPrincipalDisponible) {
+            viewModelScope.launch { _effect.send(efecto) }
         }
     }
 
@@ -114,8 +134,17 @@ class HomeViewModel(
         _uiState.value = _uiState.value.copy(
             nombre = nombre,
             rol = rol,
-            etiquetaAccionPrincipal = if (rol == Rol.VENTAS) "Registrar venta" else "",
-            accionPrincipalDisponible = rol == Rol.VENTAS,
+            etiquetaAccionPrincipal = when (rol) {
+                Rol.VENTAS -> "Registrar venta"
+                Rol.ACOPIADOR -> "Ver mi ruta"
+                else -> ""
+            },
+            etiquetaAccesoSecundario = when (rol) {
+                Rol.VENTAS -> "Ver ventas del día"
+                Rol.ACOPIADOR -> "Escanear QR"
+                else -> null
+            },
+            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR,
         )
     }
 }
