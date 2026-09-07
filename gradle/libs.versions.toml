@@ -30,7 +30,7 @@ androidxActivityCompose = "1.11.0"
 # -- confirmado con un build real, no supuesto (ver checkpoint de la Fase 7, sección "Decisiones tomadas").
 androidxLifecycleViewmodelCompose = "2.9.6"
 # Cambiar de 2.8.0-alpha10 (inexistente) a 2.8.0-beta02 o 2.9.0-alpha12
-navigationCompose = "2.8.0-beta02"
+navigationCompose = "2.9.0-alpha16"
 koinCompose = "4.2.2"
 
 [libraries]
