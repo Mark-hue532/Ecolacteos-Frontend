@@ -28,6 +28,8 @@ fun HomeScreen(
     onNavegarARegistrarVenta: () -> Unit,
     onNavegarAHomeVentas: () -> Unit,
     onNavegarAEstadoSincronizacion: () -> Unit,
+    onNavegarARutaAcopio: () -> Unit,
+    onNavegarAEscanearQrAcopio: () -> Unit,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsState()
@@ -38,6 +40,8 @@ fun HomeScreen(
                 HomeEffect.NavegarARegistrarVenta -> onNavegarARegistrarVenta()
                 HomeEffect.NavegarAHomeVentas -> onNavegarAHomeVentas()
                 HomeEffect.NavegarAEstadoSincronizacion -> onNavegarAEstadoSincronizacion()
+                HomeEffect.NavegarARutaAcopio -> onNavegarARutaAcopio()
+                HomeEffect.NavegarAEscanearQrAcopio -> onNavegarAEscanearQrAcopio()
             }
         }
     }
@@ -81,12 +85,14 @@ fun HomeScreen(
                 onClick = { viewModel.onEvent(HomeEvent.AccionPrincipalPresionada) },
                 modifier = Modifier.padding(top = Espaciado.l.dp),
             )
-            Text(
-                "Ver ventas del día",
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeEvent.AccesoSecundarioPresionado) })
-                    .padding(top = Espaciado.m.dp),
-            )
+            estado.etiquetaAccesoSecundario?.let { etiqueta ->
+                Text(
+                    etiqueta,
+                    style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeEvent.AccesoSecundarioPresionado) })
+                        .padding(top = Espaciado.m.dp),
+                )
+            }
         }
     }
 }

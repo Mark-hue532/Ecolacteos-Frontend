@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Fase 8A (MOBILE_SCREENS.md §12): A-02 (cámara para leer QR) y A-04 (ubicación del registro de
+         acopio). uses-feature con android:required="false": ningún permiso de este catálogo es obligatorio
+         para operar (§12 regla 4), un dispositivo sin cámara o sin GPS igual puede instalar y usar la app. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+
     <application
         android:label="@string/nombre_app"
         android:allowBackup="false">

@@ -87,6 +87,13 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.sqldelight.android.driver)
+            // Fase 8A (`PROMPT_FASE_08A.md §3`): cámara+QR de `A-02`. Solo Android -- iOS usa AVFoundation
+            // nativo sin dependencia (ver `plataforma/EscanerQr.ios.kt`).
+            implementation(libs.androidx.camera.core)
+            implementation(libs.androidx.camera.camera2)
+            implementation(libs.androidx.camera.lifecycle)
+            implementation(libs.androidx.camera.view)
+            implementation(libs.zxing.core)
         }
         // Los tres targets iOS comparten el mismo engine Darwin -- ver KT-* de Kotlin/Native, el source
         // set intermedio "iosMain" ya lo crea por default el plugin KMP al declarar iosX64/iosArm64/

@@ -9,6 +9,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.savedstate.read
 import com.ecolacteos.acopio.presentation.comun.DestinoSplash
+import com.ecolacteos.acopio.ui.screens.acopio.BuscarProveedorScreen
+import com.ecolacteos.acopio.ui.screens.acopio.DetalleRegistroAcopioScreen
+import com.ecolacteos.acopio.ui.screens.acopio.EscanearQrScreen
+import com.ecolacteos.acopio.ui.screens.acopio.HistorialProveedorScreen
+import com.ecolacteos.acopio.ui.screens.acopio.RegistrarAcopioScreen
+import com.ecolacteos.acopio.ui.screens.acopio.RutaDelDiaScreen
 import com.ecolacteos.acopio.ui.screens.comun.EstadoSincronizacionScreen
 import com.ecolacteos.acopio.ui.screens.comun.HomeScreen
 import com.ecolacteos.acopio.ui.screens.comun.LoginScreen
@@ -56,6 +62,8 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
                 onNavegarARegistrarVenta = { navController.navigate(Rutas.VENTAS_REGISTRAR) },
                 onNavegarAHomeVentas = { navController.navigate(Rutas.VENTAS_HOME) },
                 onNavegarAEstadoSincronizacion = { navController.navigate(Rutas.ESTADO_SINCRONIZACION) },
+                onNavegarARutaAcopio = { navController.navigate(Rutas.ACOPIO_RUTA) },
+                onNavegarAEscanearQrAcopio = { navController.navigate(Rutas.ACOPIO_ESCANEAR) },
             )
         }
         composable(Rutas.ESTADO_SINCRONIZACION) { EstadoSincronizacionScreen() }
@@ -74,6 +82,54 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
         ) { backStackEntry ->
             val uuidCliente = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_UUID_CLIENTE) }.orEmpty()
             DetalleVentaScreen(uuidCliente = uuidCliente)
+        }
+
+        // Fase 8A -- ACOPIADOR (MOBILE_SCREENS.md §5). A-07 va en 8B.
+        composable(Rutas.ACOPIO_RUTA) {
+            RutaDelDiaScreen(
+                onNavegarAEscanear = { navController.navigate(Rutas.ACOPIO_ESCANEAR) },
+                onNavegarABuscar = { navController.navigate(Rutas.ACOPIO_BUSCAR) },
+                onNavegarARegistrar = { proveedorId -> navController.navigate(Rutas.acopioRegistrar(proveedorId)) },
+            )
+        }
+        composable(Rutas.ACOPIO_ESCANEAR) {
+            EscanearQrScreen(
+                onNavegarARegistrar = { proveedorId -> navController.navigate(Rutas.acopioRegistrar(proveedorId)) },
+                onNavegarABuscar = { navController.navigate(Rutas.ACOPIO_BUSCAR) },
+            )
+        }
+        composable(Rutas.ACOPIO_BUSCAR) {
+            BuscarProveedorScreen(
+                onNavegarARegistrar = { proveedorId -> navController.navigate(Rutas.acopioRegistrar(proveedorId)) },
+            )
+        }
+        composable(
+            route = Rutas.ACOPIO_REGISTRAR,
+            arguments = listOf(navArgument(Rutas.ARG_PROVEEDOR_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val proveedorId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_PROVEEDOR_ID) }.orEmpty()
+            RegistrarAcopioScreen(
+                proveedorId = proveedorId,
+                onGuardadoConExito = { navController.popBackStack() },
+                onNavegarAHistorial = { id -> navController.navigate(Rutas.acopioHistorial(id)) },
+            )
+        }
+        composable(
+            route = Rutas.ACOPIO_HISTORIAL,
+            arguments = listOf(navArgument(Rutas.ARG_PROVEEDOR_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val proveedorId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_PROVEEDOR_ID) }.orEmpty()
+            HistorialProveedorScreen(
+                proveedorId = proveedorId,
+                onNavegarADetalle = { id -> navController.navigate(Rutas.acopioDetalle(id)) },
+            )
+        }
+        composable(
+            route = Rutas.ACOPIO_DETALLE,
+            arguments = listOf(navArgument(Rutas.ARG_REGISTRO_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
+            DetalleRegistroAcopioScreen(id = id)
         }
     }
 }

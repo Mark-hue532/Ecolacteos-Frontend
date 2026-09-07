@@ -31,6 +31,13 @@ androidxActivityCompose = "1.11.0"
 androidxLifecycleViewmodelCompose = "2.9.6"
 navigationCompose = "2.9.0-alpha16"
 koinCompose = "4.2.2"
+# Fase 8A (`PROMPT_FASE_08A.md §3`): cámara+QR y ubicación, las dos capacidades de plataforma que faltaban.
+# CameraX + ZXing en vez de ML Kit -- decisión del checkpoint: ZXing es una librería Java pura (sin
+# dependencia de Google Play Services), CameraX solo aporta el acceso a la cámara (`Preview`+`ImageAnalysis`)
+# sobre Camera2 con soporte hasta `minSdk 26`. Ubicación usa `android.location.LocationManager` del SDK
+# (sin `play-services-location`, cero dependencia nueva) -- ver `plataforma/ProveedorUbicacion.android.kt`.
+androidxCamera = "1.4.2"
+zxing = "3.5.3"
 
 [libraries]
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -69,6 +76,12 @@ androidx-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecy
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koinCompose" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koinCompose" }
+# Fase 8A: lectura de QR (`A-02`). Solo `androidMain` -- iOS usa `AVFoundation` nativo, sin dependencia.
+androidx-camera-core = { module = "androidx.camera:camera-core", version.ref = "androidxCamera" }
+androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "androidxCamera" }
+androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "androidxCamera" }
+androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "androidxCamera" }
+zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 
 [plugins]
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
