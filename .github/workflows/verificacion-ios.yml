@@ -4,11 +4,12 @@ on:
   push:
     branches: [main]
   pull_request:
-  workflow_dispatch:      # permite dispararlo a mano, para no gastar minutos de más
+  workflow_dispatch:
 
 jobs:
   ios:
-    runs-on: macos-14     # Apple Silicon → el target de simulador es iosSimulatorArm64
+    runs-on: macos-14
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,10 +21,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Compilar shared para iOS
-        run: ./gradlew :shared:compileKotlinIosSimulatorArm64 :shared:compileKotlinIosArm64
+        run: |
+          ./gradlew :shared:compileKotlinIosSimulatorArm64
+          ./gradlew :shared:compileKotlinIosArm64
 
-      - name: Tests en target nativo iOS (incluye el roundtrip decimal de bignum)
-        run: ./gradlew :shared:iosSimulatorArm64Test
+      - name: Ejecutar tests iOS
+        run: ./gradlew :shared:iosSimulatorArm64Test -Pkotlin.native.cacheKind=none
 
       - name: Enlazar framework
         run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
