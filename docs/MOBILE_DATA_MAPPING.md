@@ -1059,28 +1059,33 @@ Solución: (a) preferida, y la que ya resuelve §18.1: aceptar registroAcopioUui
 ID: DATA-015
 Severidad: MEDIUM
 Endpoint: POST /api/ventas + /sync/ventas (Request) vs GET /api/ventas/{id} (Response)
-Campo: total, tipoQuesoNombre -- ausentes en VentaRequest, presentes solo en VentaResponse
+Campo: total -- ausente en VentaRequest, presente solo en VentaResponse
 Backend: `total` es una columna GENERATED ALWAYS de Postgres (cantidad * precioUnitario, calculada
          server-side) -- nunca viaja en el Request, no se puede enviar ni predecir con precisión
-         garantizada en el cliente. `tipoQuesoNombre` tampoco viaja en el Request (solo tipoQuesoId);
-         el servidor lo resuelve contra el catálogo al responder.
+         garantizada en el cliente.
 Problema: `venta_local` (la tabla de captura offline, Fase 4) modela exactamente lo que el dispositivo
           conoce en el momento de capturar: cantidad, precioUnitario, tipoQuesoId. No puede persistir
-          `total` ni `tipoQuesoNombre` porque esos valores no existen hasta que el servidor confirma.
-          `V-03` (Detalle de venta, Fase 7) necesita mostrar el total real -- un cálculo local
-          `cantidad × precioUnitario` podría no coincidir centavo a centavo con el GENERATED de Postgres
-          (redondeos, escala), y `CLAUDE.md §3.1` prohíbe esa clase de aproximación para cifras que
-          liquidan pagos.
-Impacto: bajo-medio. Una Venta recién capturada y todavía sin sincronizar no tiene `total` real que
-         mostrar -- `V-03` lo modela `nullable` y muestra "No disponible" hasta que la fila confirma
-         contra el servidor y trae el valor real. No bloquea la captura ni el flujo offline-first; solo
-         pospone un dato derivado hasta que existe una fuente de verdad.
-Solución: mitigación de cliente, ya implementada (Fase 7): `VentaDetalle.total`/`tipoQuesoNombre` quedan
-          `nullable`, poblados recién cuando la fila sincroniza y el servidor los devuelve. Ningún
-          cálculo local los aproxima mientras tanto.
-¿Backend change required?: NO -- es el comportamiento esperado de una columna GENERATED y un campo
-                            resuelto server-side. El cliente ya modela la ausencia temporal
-                            correctamente; no hace falta ningún cambio de contrato.
+          `total` porque ese valor no existe hasta que el servidor confirma. `V-03` (Detalle de venta,
+          Fase 7) necesita mostrar el total real -- un cálculo local `cantidad × precioUnitario` podría
+          no coincidir centavo a centavo con el GENERATED de Postgres (redondeos, escala), y
+          `CLAUDE.md §3.1` prohíbe esa clase de aproximación para cifras que liquidan pagos.
+Impacto: bajo. Una Venta recién capturada y todavía sin sincronizar no tiene `total` real que mostrar --
+         `V-03` lo modela `nullable` y muestra "No disponible" hasta que la fila confirma contra el
+         servidor y trae el valor real. No bloquea la captura ni el flujo offline-first; solo pospone un
+         dato derivado hasta que existe una fuente de verdad.
+Solución: mitigación de cliente, ya implementada (Fase 7): `VentaDetalle.total` queda `nullable`, poblado
+          recién cuando la fila sincroniza y el servidor lo devuelve. Ningún cálculo local lo aproxima
+          mientras tanto.
+¿Backend change required?: NO -- es el comportamiento esperado de una columna GENERATED. El cliente ya
+                            modela la ausencia temporal correctamente; no hace falta ningún cambio de
+                            contrato.
+
+Corrección (Fase 8E): el hallazgo original también listaba `tipoQuesoNombre` como ausente y sin
+mitigación -- es falso. `tipoQuesoNombre` tampoco viaja en `VentaRequest` (solo `tipoQuesoId`), pero
+`DetalleVentaViewModel` ya lo resuelve contra `tipo_queso_cache` (mismo patrón `NAME_MISMATCH` que
+`RegistroAcopioDetalle.proveedorNombre`) apenas se captura, sin esperar a que sincronice -- nunca queda
+"No disponible" salvo que el `tipoQuesoId` tampoco esté en el catálogo local. Se acota este hallazgo a
+`total`, el único campo que sí depende de la confirmación del servidor.
 ```
 
 ```text
