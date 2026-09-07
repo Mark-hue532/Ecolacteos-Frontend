@@ -2,8 +2,7 @@ import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.api.tasks.testing.AbstractTestTask
 import org.gradle.api.tasks.testing.logging.TestLogEvent
-import org.jetbrains.kotlin.gradle.plugin.mpp.DisableCacheInKotlinVersion
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeCacheApi
+
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -38,14 +37,6 @@ kotlin {
             isStatic = true
         }
 
-        iosTarget.binaries.all {
-            @OptIn(KotlinNativeCacheApi::class)
-            disableNativeCache(
-                version = DisableCacheInKotlinVersion.`2_3_20`,
-                reason = "Bug del compilador con navigation-common 2.9.0-alpha16: RouteDecoder ya definido al construir el caché del klib",
-            )
-        }
-    }
 
     sourceSets {
         commonMain.dependencies {
