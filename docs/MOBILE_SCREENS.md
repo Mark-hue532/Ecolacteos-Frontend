@@ -808,7 +808,7 @@ presente). Si el real es `null`, se muestra "No calculado" y **no** se dibuja la
 
 **Modo** offline OK · **Fuente** `venta_local`
 
-Ventas del día con su total y estado de sync.
+Ventas del día con su subtotal estimado (`§8`: nunca "Total" — `DATA-015`) y estado de sync.
 
 ---
 
@@ -1254,7 +1254,7 @@ Verificación de que ninguna pantalla inventa un endpoint ni una tabla. Los 34 e
 | P-02 | `GET /api/registros-acopio/proveedor/{id}` | `registro_acopio_local` + `_cache` | parcial |
 | P-03 | `POST /api/lotes-produccion`, `POST /api/sync/lotes-produccion` | `lote_produccion_local` (+ N:M) | **offline-first** |
 | P-04 | `GET /api/lotes-produccion/{id}` | `lote_produccion_local` | online+cache |
-| V-01 | `GET /api/ventas` | `venta_local` | online+cache |
+| V-01 | — | `venta_local` | offline |
 | V-02 | `POST /api/ventas`, `POST /api/sync/ventas` | `venta_local` | **offline-first** |
 | V-03 | `GET /api/ventas/{id}` | `venta_local` | online+cache |
 | R-01 | `POST /api/recepcion-planta` | — | online-only |
