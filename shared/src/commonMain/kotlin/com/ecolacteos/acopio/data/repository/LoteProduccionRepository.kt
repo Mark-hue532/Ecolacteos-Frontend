@@ -1,13 +1,18 @@
 package com.ecolacteos.acopio.data.repository
 
+import com.ecolacteos.acopio.core.ApiResult
 import com.ecolacteos.acopio.core.Decimal
 import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.core.generarUuidV4
 import com.ecolacteos.acopio.data.local.datasource.LoteProduccionLocalDataSource
+import com.ecolacteos.acopio.data.remote.dto.LoteProduccionResponse
 import com.ecolacteos.acopio.domain.GestorSesion
 import com.ecolacteos.acopio.domain.model.LoteProduccion
+import com.ecolacteos.acopio.domain.model.LoteProduccionDetalle
 import com.ecolacteos.acopio.domain.model.LoteProduccionRegistro
 import com.ecolacteos.acopio.domain.model.SyncStatus
+import com.ecolacteos.acopio.network.ApiClient
+import com.ecolacteos.acopio.network.Endpoints
 import com.ecolacteos.acopio.synchronization.SyncEngine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -35,6 +40,13 @@ interface LoteProduccionRepository {
 
     /** `S-05` (Fase 8B): descarta una fila no sincronizada de la sesión activa. Ver `CLAUDE.md §3.6`. */
     suspend fun descartar(uuidCliente: String)
+
+    /**
+     * `P-04` (Fase 8D, ONLINE+CACHE): `GET /api/lotes-produccion/{id}`. Si falla, degrada a
+     * `lote_produccion_local` -- la propia captura de este dispositivo -- sin `rendimientoPct` (ver
+     * [LoteProduccionDetalle]). `null` solo si ninguna de las dos fuentes tiene nada para este id.
+     */
+    suspend fun obtenerDetalle(id: String): LoteProduccionDetalle?
 }
 
 internal class LoteProduccionRepositoryImpl(
@@ -42,6 +54,7 @@ internal class LoteProduccionRepositoryImpl(
     private val local: LoteProduccionLocalDataSource,
     private val resolutor: ResolutorPadreRegistroAcopio,
     private val syncEngine: SyncEngine,
+    private val apiClient: ApiClient,
     private val reloj: Clock = Clock.System,
     private val zona: TimeZone = TimeZone.currentSystemDefault(),
 ) : LoteProduccionRepository {
@@ -117,4 +130,33 @@ internal class LoteProduccionRepositoryImpl(
         val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
         local.descartarNoSincronizado(uuidCliente, usuarioId)
     }
+
+    override suspend fun obtenerDetalle(id: String): LoteProduccionDetalle? =
+        when (val respuesta = apiClient.get<LoteProduccionResponse>(Endpoints.lotePorId(id))) {
+            is ApiResult.Exito -> respuesta.datos.aDetalle()
+            // ONLINE+CACHE (§5 de la arquitectura): sin red o con error, degrada a la propia captura local.
+            is ApiResult.Error -> local.obtenerPorServerId(id)?.aDetalleDesdeLocal()
+        }
+
+    private fun LoteProduccionResponse.aDetalle(): LoteProduccionDetalle = LoteProduccionDetalle(
+        id = id,
+        fecha = fecha,
+        tipoQuesoId = null, // el Response no lo trae -- NAME_MISMATCH, ver el comentario de LoteProduccionDetalle
+        tipoQuesoNombre = tipoQuesoNombre,
+        litrosUsados = litrosUsados,
+        unidadesObtenidas = unidadesObtenidas,
+        rendimientoPct = rendimientoPct,
+        rendimientoEsperadoPct = rendimientoEsperadoPct,
+    )
+
+    private fun LoteProduccion.aDetalleDesdeLocal(): LoteProduccionDetalle = LoteProduccionDetalle(
+        id = serverId ?: uuidCliente,
+        fecha = fecha,
+        tipoQuesoId = tipoQuesoId,
+        tipoQuesoNombre = null, // solo lo trae el Response
+        litrosUsados = litrosUsados,
+        unidadesObtenidas = unidadesObtenidas,
+        rendimientoPct = null, // lo calcula el servidor -- degradado nunca lo inventa (trampa #6)
+        rendimientoEsperadoPct = null, // el ViewModel lo resuelve via tipoQuesoId + tipo_queso_cache
+    )
 }

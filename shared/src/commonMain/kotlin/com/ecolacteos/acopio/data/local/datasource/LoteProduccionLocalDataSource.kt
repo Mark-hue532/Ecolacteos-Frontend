@@ -60,6 +60,10 @@ class LoteProduccionLocalDataSource(
     fun obtenerPorUuidCliente(uuidCliente: String): LoteProduccion? =
         queries.obtenerPorUuidCliente(uuidCliente).executeAsOneOrNull()?.aDominio()
 
+    /** `P-04` (Fase 8D, ONLINE+CACHE): degradado sin conectividad -- ver el comentario en el `.sq`. */
+    fun obtenerPorServerId(serverId: String): LoteProduccion? =
+        queries.obtenerPorServerId(serverId).executeAsOneOrNull()?.aDominio()
+
     fun obtenerPendientes(usuarioId: String, ahora: LocalDateTime): List<LoteProduccion> =
         queries.obtenerPendientes(usuarioId, ahora).executeAsList().map { it.aDominio() }
 

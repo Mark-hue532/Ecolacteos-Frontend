@@ -35,7 +35,7 @@ val repositoryModule = module {
         AnalisisCalidadRepositoryImpl(gestorSesion = get(), local = get(), resolutor = get(), syncEngine = get(), apiClient = get())
     }
     single<LoteProduccionRepository> {
-        LoteProduccionRepositoryImpl(gestorSesion = get(), local = get(), resolutor = get(), syncEngine = get())
+        LoteProduccionRepositoryImpl(gestorSesion = get(), local = get(), resolutor = get(), syncEngine = get(), apiClient = get())
     }
     single<CatalogoRepository> {
         CatalogoRepositoryImpl(catalogosLocal = get(), rutaZonaLocal = get(), apiClient = get(), syncEngine = get())

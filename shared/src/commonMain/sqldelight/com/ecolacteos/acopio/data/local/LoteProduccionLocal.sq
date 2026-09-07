@@ -32,6 +32,11 @@ INSERT INTO lote_produccion_local (
 obtenerPorUuidCliente:
 SELECT * FROM lote_produccion_local WHERE uuid_cliente = :uuidCliente;
 
+-- Fase 8D (`P-04`): fallback local cuando el detalle remoto (`GET /api/lotes-produccion/{id}`) no está
+-- disponible -- mismo criterio que `RegistroAcopioLocalDataSource.obtenerPorServerId`.
+obtenerPorServerId:
+SELECT * FROM lote_produccion_local WHERE server_id = :serverId LIMIT 1;
+
 -- Ajustado en Fase 5, mismo criterio que `analisis_calidad_local` (ver comentarios allí).
 obtenerPendientes:
 SELECT * FROM lote_produccion_local

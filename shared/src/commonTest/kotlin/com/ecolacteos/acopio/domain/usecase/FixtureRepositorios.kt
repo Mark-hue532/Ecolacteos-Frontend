@@ -216,6 +216,7 @@ class FixtureRepositorios(
             lotesLocal,
             resolutor,
             syncEngineParaRepositorios,
+            apiClient,
             reloj,
             zona,
         )

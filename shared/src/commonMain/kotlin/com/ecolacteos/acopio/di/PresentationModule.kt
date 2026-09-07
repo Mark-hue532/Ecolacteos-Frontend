@@ -19,6 +19,10 @@ import com.ecolacteos.acopio.presentation.comun.HomeViewModel
 import com.ecolacteos.acopio.presentation.comun.LoginViewModel
 import com.ecolacteos.acopio.presentation.comun.PendientesViewModel
 import com.ecolacteos.acopio.presentation.comun.SplashViewModel
+import com.ecolacteos.acopio.presentation.produccion.DetalleLoteViewModel
+import com.ecolacteos.acopio.presentation.produccion.HomeProduccionViewModel
+import com.ecolacteos.acopio.presentation.produccion.RegistrarLoteViewModel
+import com.ecolacteos.acopio.presentation.produccion.SeleccionarRegistrosLoteViewModel
 import com.ecolacteos.acopio.presentation.ventas.DetalleVentaViewModel
 import com.ecolacteos.acopio.presentation.ventas.HomeVentasViewModel
 import com.ecolacteos.acopio.presentation.ventas.RegistrarVentaViewModel
@@ -167,6 +171,41 @@ val presentationModule = module {
         DetalleAnalisisCalidadViewModel(
             registroAcopioId = params.get(),
             obtenerDetalleAnalisisCalidadUseCase = get(),
+        )
+    }
+
+    // Fase 8D -- PRODUCCION (PROMPT_FASE_08D.md §3): las 4 pantallas P-01..P-04.
+    viewModel {
+        HomeProduccionViewModel(
+            observarLotesRecientesUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        SeleccionarRegistrosLoteViewModel(
+            proveedorId = params.get(),
+            clasificarPadresRegistroAcopioUseCase = get(),
+            obtenerRegistrosDeProveedorUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        // Tres parámetros posicionales -- mismo criterio que RegistrarAcopioViewModel (ParametersHolder.get(Int)).
+        RegistrarLoteViewModel(
+            registroAcopioUuidClientes = params.get<List<String>>(0),
+            registroAcopioServerIds = params.get<List<String>>(1),
+            totalLitrosSeleccionadoTexto = params.get<String>(2),
+            crearLoteProduccionUseCase = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+            borradorFormularioUseCase = get(),
+        )
+    }
+    viewModel { params ->
+        DetalleLoteViewModel(
+            id = params.get(),
+            obtenerDetalleLoteUseCase = get(),
+            observarCatalogosUseCase = get(),
         )
     }
 }

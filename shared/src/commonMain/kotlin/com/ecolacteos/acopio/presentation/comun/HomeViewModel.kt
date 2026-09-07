@@ -29,7 +29,7 @@ data class HomeUiState(
     val nombre: String = "",
     val rol: Rol = Rol.UNKNOWN,
     val etiquetaAccionPrincipal: String = "",
-    /** `null` -> sin acceso secundario para este rol (ej. PRODUCCION/RECEPCION todavía, Fase 8D-8E). */
+    /** `null` -> sin acceso secundario para este rol (ej. RECEPCION todavía, Fase 8E). */
     val etiquetaAccesoSecundario: String? = null,
     val accionPrincipalDisponible: Boolean = false,
     val resumenSync: ResumenSync = ResumenSync(),
@@ -70,6 +70,9 @@ sealed interface HomeEffect {
 
     // Fase 8C -- CALIDAD (MOBILE_SCREENS.md §6).
     data object NavegarAHomeCalidad : HomeEffect
+
+    // Fase 8D -- PRODUCCION (MOBILE_SCREENS.md §7).
+    data object NavegarAHomeProduccion : HomeEffect
 
     // Fase 8B (PROMPT_FASE_08B.md §4).
     /** Ruta directa a `S-05` vía [IndicadorSync][com.ecolacteos.acopio.ui.components.IndicadorSync] (`§2.1` regla 4). */
@@ -124,6 +127,7 @@ class HomeViewModel(
                     Rol.VENTAS -> HomeEffect.NavegarARegistrarVenta
                     Rol.ACOPIADOR -> HomeEffect.NavegarARutaAcopio
                     Rol.CALIDAD -> HomeEffect.NavegarAHomeCalidad
+                    Rol.PRODUCCION -> HomeEffect.NavegarAHomeProduccion
                     else -> null
                 },
             )
@@ -162,6 +166,7 @@ class HomeViewModel(
                 Rol.VENTAS -> "Registrar venta"
                 Rol.ACOPIADOR -> "Ver mi ruta"
                 Rol.CALIDAD -> "Analizar entregas"
+                Rol.PRODUCCION -> "Registrar lote"
                 else -> ""
             },
             etiquetaAccesoSecundario = when (rol) {
@@ -169,7 +174,7 @@ class HomeViewModel(
                 Rol.ACOPIADOR -> "Escanear QR"
                 else -> null
             },
-            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR || rol == Rol.CALIDAD,
+            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR || rol == Rol.CALIDAD || rol == Rol.PRODUCCION,
         )
     }
 }
