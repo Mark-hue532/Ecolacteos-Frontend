@@ -26,7 +26,7 @@ jobs:
           ./gradlew :shared:compileKotlinIosArm64
 
       - name: Ejecutar tests iOS
-        run: ./gradlew :shared:iosSimulatorArm64Test -Pkotlin.native.cacheKind=none
+        run: ./gradlew :shared:iosSimulatorArm64Test
 
       - name: Enlazar framework
         run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
