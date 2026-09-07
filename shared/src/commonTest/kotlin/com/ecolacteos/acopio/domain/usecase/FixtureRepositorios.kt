@@ -21,8 +21,14 @@ import com.ecolacteos.acopio.data.repository.ComunicadoConfirmacionRepository
 import com.ecolacteos.acopio.data.repository.ComunicadoConfirmacionRepositoryImpl
 import com.ecolacteos.acopio.data.repository.CorreccionRegistroRepository
 import com.ecolacteos.acopio.data.repository.CorreccionRegistroRepositoryImpl
+import com.ecolacteos.acopio.data.repository.InnovacionRepository
+import com.ecolacteos.acopio.data.repository.InnovacionRepositoryImpl
 import com.ecolacteos.acopio.data.repository.LoteProduccionRepository
 import com.ecolacteos.acopio.data.repository.LoteProduccionRepositoryImpl
+import com.ecolacteos.acopio.data.repository.PagoRepository
+import com.ecolacteos.acopio.data.repository.PagoRepositoryImpl
+import com.ecolacteos.acopio.data.repository.RecepcionPlantaRepository
+import com.ecolacteos.acopio.data.repository.RecepcionPlantaRepositoryImpl
 import com.ecolacteos.acopio.data.repository.RegistroAcopioRepository
 import com.ecolacteos.acopio.data.repository.RegistroAcopioRepositoryImpl
 import com.ecolacteos.acopio.data.repository.ResolutorPadreRegistroAcopio
@@ -236,6 +242,11 @@ class FixtureRepositorios(
 
     val comunicadoConfirmacionRepository: ComunicadoConfirmacionRepository =
         ComunicadoConfirmacionRepositoryImpl(apiClient)
+
+    // Fase 8E -- los 3 Repository online-only sin tabla local (§4 del prompt): solo necesitan el ApiClient.
+    val recepcionPlantaRepository: RecepcionPlantaRepository = RecepcionPlantaRepositoryImpl(apiClient)
+    val pagoRepository: PagoRepository = PagoRepositoryImpl(apiClient)
+    val innovacionRepository: InnovacionRepository = InnovacionRepositoryImpl(apiClient)
 
     val verificarPendientes = VerificarPendientesUseCase(
         registroAcopioRepository,

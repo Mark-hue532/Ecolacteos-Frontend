@@ -11,9 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ecolacteos.acopio.presentation.calidad.DetalleAnalisisEffect
@@ -35,15 +32,15 @@ import org.koin.core.parameter.parametersOf
 @Composable
 fun DetalleAnalisisScreen(
     registroAcopioId: String,
+    onNavegarARegistrarCorreccion: (String) -> Unit,
     viewModel: DetalleAnalisisCalidadViewModel = koinViewModel(parameters = { parametersOf(registroAcopioId) }),
 ) {
     val estado by viewModel.uiState.collectAsState()
-    var mensajeCorreccion by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { efecto ->
             when (efecto) {
-                DetalleAnalisisEffect.CorreccionNoDisponibleTodavia -> mensajeCorreccion = "Disponible en una fase futura"
+                is DetalleAnalisisEffect.NavegarARegistrarCorreccion -> onNavegarARegistrarCorreccion(efecto.registroAcopioId)
             }
         }
     }
@@ -79,7 +76,6 @@ fun DetalleAnalisisScreen(
                     texto = "Registrar corrección",
                     onClick = { viewModel.onEvent(DetalleAnalisisEvent.RegistrarCorreccionPresionado) },
                 )
-                mensajeCorreccion?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             }
         }
     }

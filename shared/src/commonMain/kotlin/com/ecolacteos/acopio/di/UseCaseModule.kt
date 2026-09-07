@@ -5,7 +5,9 @@ import com.ecolacteos.acopio.domain.usecase.ActualizarRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.ActualizarVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.AnexarCorreccionUseCase
 import com.ecolacteos.acopio.domain.usecase.BorradorFormularioUseCase
+import com.ecolacteos.acopio.domain.usecase.BuscarAnalisisPorFolioUseCase
 import com.ecolacteos.acopio.domain.usecase.BuscarProveedorPorNombreUseCase
+import com.ecolacteos.acopio.domain.usecase.BuscarRecepcionesUseCase
 import com.ecolacteos.acopio.domain.usecase.ClasificarPadresRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.ConfirmarComunicadoUseCase
 import com.ecolacteos.acopio.domain.usecase.CrearAnalisisCalidadUseCase
@@ -19,6 +21,12 @@ import com.ecolacteos.acopio.domain.usecase.LogoutUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarEntregasConEstadoAnalisisUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerAlertasPorZonaUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleRecepcionUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerPagosDeProveedorUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerScoreConfianzaUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerZonasDisponiblesUseCase
+import com.ecolacteos.acopio.domain.usecase.RegistrarRecepcionUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarEstadoSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarHistorialProveedorUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarPendientesUseCase
@@ -95,6 +103,16 @@ val useCaseModule = module {
     // dependencias -- se llama directo, no se registra acá.
     single { ObservarLotesRecientesUseCase(loteProduccionRepository = get(), observarCatalogosUseCase = get()) }
     single { ObtenerDetalleLoteUseCase(get()) }
+
+    // Fase 8E (PROMPT_FASE_08E.md §7): RECEPCION y las lecturas de CALIDAD -- los 8 UseCase que faltaban.
+    single { RegistrarRecepcionUseCase(get()) }
+    single { BuscarRecepcionesUseCase(get()) }
+    single { ObtenerDetalleRecepcionUseCase(get()) }
+    single { ObtenerPagosDeProveedorUseCase(get()) }
+    single { ObtenerAlertasPorZonaUseCase(get()) }
+    single { ObtenerScoreConfianzaUseCase(get()) }
+    single { BuscarAnalisisPorFolioUseCase(get()) }
+    single { ObtenerZonasDisponiblesUseCase(get()) }
 
     single {
         VerificarPendientesUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get(), loteProduccionRepository = get(), ventaRepository = get())

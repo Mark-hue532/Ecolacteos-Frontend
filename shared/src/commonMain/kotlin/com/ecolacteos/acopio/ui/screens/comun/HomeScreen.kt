@@ -40,6 +40,8 @@ fun HomeScreen(
     onNavegarAEscanearQrAcopio: () -> Unit,
     onNavegarAHomeCalidad: () -> Unit,
     onNavegarAHomeProduccion: () -> Unit,
+    onNavegarARecepcionRegistrar: () -> Unit,
+    onNavegarARecepcionHistorial: () -> Unit,
     onNavegarAPendientes: () -> Unit,
     onNavegarAComunicados: () -> Unit,
     onNavegarAAjustes: () -> Unit,
@@ -57,6 +59,8 @@ fun HomeScreen(
                 HomeEffect.NavegarAEscanearQrAcopio -> onNavegarAEscanearQrAcopio()
                 HomeEffect.NavegarAHomeCalidad -> onNavegarAHomeCalidad()
                 HomeEffect.NavegarAHomeProduccion -> onNavegarAHomeProduccion()
+                HomeEffect.NavegarARecepcionRegistrar -> onNavegarARecepcionRegistrar()
+                HomeEffect.NavegarARecepcionHistorial -> onNavegarARecepcionHistorial()
                 HomeEffect.NavegarAPendientes -> onNavegarAPendientes()
                 HomeEffect.NavegarAComunicados -> onNavegarAComunicados()
                 HomeEffect.NavegarAAjustes -> onNavegarAAjustes()

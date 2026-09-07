@@ -11,9 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ecolacteos.acopio.presentation.NO_DISPONIBLE
@@ -32,15 +29,17 @@ import org.koin.core.parameter.parametersOf
  * se muestran etiquetados y por separado (`§10.3`, `DATA-012`) -- nunca una duración entre ambos.
  */
 @Composable
-fun DetalleRegistroAcopioScreen(id: String, viewModel: DetalleRegistroAcopioViewModel = koinViewModel(parameters = { parametersOf(id) })) {
+fun DetalleRegistroAcopioScreen(
+    id: String,
+    onNavegarARegistrarCorreccion: (String) -> Unit,
+    viewModel: DetalleRegistroAcopioViewModel = koinViewModel(parameters = { parametersOf(id) }),
+) {
     val estado by viewModel.uiState.collectAsState()
-    var mensajeCorreccion by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { efecto ->
             when (efecto) {
-                DetalleRegistroAcopioEffect.CorreccionNoDisponibleTodavia ->
-                    mensajeCorreccion = "Disponible en una fase futura"
+                is DetalleRegistroAcopioEffect.NavegarARegistrarCorreccion -> onNavegarARegistrarCorreccion(efecto.registroAcopioId)
             }
         }
     }
@@ -77,7 +76,6 @@ fun DetalleRegistroAcopioScreen(id: String, viewModel: DetalleRegistroAcopioView
                         onClick = { viewModel.onEvent(DetalleRegistroAcopioEvent.RegistrarCorreccionPresionado) },
                     )
                 }
-                mensajeCorreccion?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             }
         }
     }

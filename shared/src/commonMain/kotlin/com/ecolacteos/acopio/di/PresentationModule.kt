@@ -7,9 +7,13 @@ import com.ecolacteos.acopio.presentation.acopio.EscanearQrViewModel
 import com.ecolacteos.acopio.presentation.acopio.HistorialProveedorViewModel
 import com.ecolacteos.acopio.presentation.acopio.RegistrarAcopioViewModel
 import com.ecolacteos.acopio.presentation.acopio.RutaDelDiaViewModel
+import com.ecolacteos.acopio.presentation.calidad.AlertasAnomaliaViewModel
+import com.ecolacteos.acopio.presentation.calidad.BuscarAnalisisPorFolioViewModel
 import com.ecolacteos.acopio.presentation.calidad.DetalleAnalisisCalidadViewModel
 import com.ecolacteos.acopio.presentation.calidad.HomeCalidadViewModel
 import com.ecolacteos.acopio.presentation.calidad.RegistrarAnalisisViewModel
+import com.ecolacteos.acopio.presentation.calidad.RegistrarCorreccionViewModel
+import com.ecolacteos.acopio.presentation.calidad.ScoreConfianzaViewModel
 import com.ecolacteos.acopio.presentation.calidad.SeleccionarRegistroAnalisisViewModel
 import com.ecolacteos.acopio.presentation.comun.AjustesViewModel
 import com.ecolacteos.acopio.presentation.comun.ComunicadosViewModel
@@ -23,6 +27,10 @@ import com.ecolacteos.acopio.presentation.produccion.DetalleLoteViewModel
 import com.ecolacteos.acopio.presentation.produccion.HomeProduccionViewModel
 import com.ecolacteos.acopio.presentation.produccion.RegistrarLoteViewModel
 import com.ecolacteos.acopio.presentation.produccion.SeleccionarRegistrosLoteViewModel
+import com.ecolacteos.acopio.presentation.recepcion.HistorialRecepcionesViewModel
+import com.ecolacteos.acopio.presentation.recepcion.PagosProveedorViewModel
+import com.ecolacteos.acopio.presentation.recepcion.RegistrarRecepcionViewModel
+import com.ecolacteos.acopio.presentation.recepcion.ResultadoConciliacionViewModel
 import com.ecolacteos.acopio.presentation.ventas.DetalleVentaViewModel
 import com.ecolacteos.acopio.presentation.ventas.HomeVentasViewModel
 import com.ecolacteos.acopio.presentation.ventas.RegistrarVentaViewModel
@@ -174,6 +182,26 @@ val presentationModule = module {
         )
     }
 
+    // Fase 8E -- CALIDAD (PROMPT_FASE_08E.md): C-05, C-06, C-07, C-08.
+    viewModel { BuscarAnalisisPorFolioViewModel(buscarAnalisisPorFolioUseCase = get(), observarConectividadUseCase = get()) }
+    viewModel { params ->
+        RegistrarCorreccionViewModel(
+            registroAcopioId = params.get(),
+            anexarCorreccionUseCase = get(),
+            obtenerDetalleRegistroAcopioUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel {
+        AlertasAnomaliaViewModel(
+            obtenerZonasDisponiblesUseCase = get(),
+            obtenerZonaAsignadaUseCase = get(),
+            obtenerAlertasPorZonaUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params -> ScoreConfianzaViewModel(proveedorId = params.get(), obtenerScoreConfianzaUseCase = get()) }
+
     // Fase 8D -- PRODUCCION (PROMPT_FASE_08D.md §3): las 4 pantallas P-01..P-04.
     viewModel {
         HomeProduccionViewModel(
@@ -208,4 +236,17 @@ val presentationModule = module {
             observarCatalogosUseCase = get(),
         )
     }
+
+    // Fase 8E -- RECEPCION (PROMPT_FASE_08E.md): las 4 pantallas R-01..R-04.
+    viewModel {
+        RegistrarRecepcionViewModel(
+            registrarRecepcionUseCase = get(),
+            buscarRecepcionesUseCase = get(),
+            observarCatalogosUseCase = get(),
+            observarConectividadUseCase = get(),
+        )
+    }
+    viewModel { params -> ResultadoConciliacionViewModel(id = params.get(), obtenerDetalleRecepcionUseCase = get()) }
+    viewModel { HistorialRecepcionesViewModel(buscarRecepcionesUseCase = get(), observarCatalogosUseCase = get()) }
+    viewModel { params -> PagosProveedorViewModel(proveedorId = params.get(), obtenerPagosDeProveedorUseCase = get()) }
 }

@@ -40,6 +40,9 @@ fun HomeCalidadScreen(
     onNavegarADetalleAnalisis: (String) -> Unit,
     onNavegarASeleccionarRegistro: (String) -> Unit,
     onNavegarABuscarProveedor: () -> Unit,
+    onNavegarABuscarPorFolio: () -> Unit,
+    onNavegarAAlertasAnomalia: () -> Unit,
+    onNavegarABuscarProveedorParaScore: () -> Unit,
     viewModel: HomeCalidadViewModel = koinViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsState()
@@ -50,6 +53,9 @@ fun HomeCalidadScreen(
                 is HomeCalidadEffect.NavegarADetalleAnalisis -> onNavegarADetalleAnalisis(efecto.registroAcopioId)
                 is HomeCalidadEffect.NavegarASeleccionarRegistro -> onNavegarASeleccionarRegistro(efecto.proveedorId)
                 HomeCalidadEffect.NavegarABuscarProveedor -> onNavegarABuscarProveedor()
+                HomeCalidadEffect.NavegarABuscarPorFolio -> onNavegarABuscarPorFolio()
+                HomeCalidadEffect.NavegarAAlertasAnomalia -> onNavegarAAlertasAnomalia()
+                HomeCalidadEffect.NavegarABuscarProveedorParaScore -> onNavegarABuscarProveedorParaScore()
             }
         }
     }
@@ -66,6 +72,27 @@ fun HomeCalidadScreen(
             onClick = { viewModel.onEvent(HomeCalidadEvent.AnalizarNuevaEntregaPresionado) },
             modifier = Modifier.padding(top = Espaciado.m.dp),
         )
+
+        Row(modifier = Modifier.fillMaxWidth().padding(top = Espaciado.m.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                "Buscar por folio",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeCalidadEvent.BuscarPorFolioPresionado) }),
+            )
+            Text(
+                "Alertas de anomalías",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeCalidadEvent.AlertasAnomaliaPresionado) }),
+            )
+            Text(
+                "Score de confianza",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.clickable(onClick = { viewModel.onEvent(HomeCalidadEvent.ScoreConfianzaPresionado) }),
+            )
+        }
 
         when {
             estado.vacio -> EstadoVacio(

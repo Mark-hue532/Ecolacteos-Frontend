@@ -642,7 +642,15 @@ Cada fila cae en uno de tres casos:
 |---|---|---|---|
 | Entrega **ajena ya descargada** | `registro_acopio_cache` (tiene `id` de servidor) | **Sí** — se referencia por `registro_acopio_server_id` | Normal, seleccionable |
 | Entrega **propia ya sincronizada** | `registro_acopio_local` con `server_id` | **Sí** | Normal, seleccionable |
-| Entrega **propia sin sincronizar** | `registro_acopio_local` sin `server_id` | **Sí, pero el análisis queda retenido** | Seleccionable, con aviso: "Esta entrega todavía no se envió. El análisis se guardará y se enviará cuando la entrega se sincronice" → el hijo nace en `PENDING_DEPENDENCY` |
+| Entrega **propia sin sincronizar** | `registro_acopio_local` sin `server_id` | **Sí, pero el análisis puede quedar retenido indefinidamente** | Seleccionable, con aviso: "Esta entrega todavía no se envió. El análisis se guardará, pero puede quedar pendiente incluso después de que la entrega se sincronice" → el hijo nace en `PENDING_DEPENDENCY` |
+
+**Corrección (`DATA-014`, Fase 8C/8E): "se enviará cuando la entrega se sincronice" es falso tal como está
+implementado hoy.** El lote de sync (`POST /api/sync/registros-acopio`) no devuelve el `server_id` del
+padre en `confirmados[]` -- así que cuando el padre se capturó en **este mismo dispositivo**, sincronizarlo
+NO libera al hijo: el motor lo deja en `PENDING_DEPENDENCY` de forma indefinida, con un `sync_error`
+explícito que nombra el issue, hasta que haya un cambio de backend (`§18.1`) o hasta que la entrega
+reaparezca en el historial del proveedor como una fila **ajena** con `server_id` real (recién ahí un
+análisis *nuevo* sobre esa referencia nace resuelto -- el que ya quedó bloqueado sigue bloqueado).
 
 **El caso que no se puede resolver**: una entrega capturada offline en **otro** dispositivo que tampoco
 sincronizó. No existe en ningún lado localmente, así que no aparece en la lista y no hay nada que
@@ -768,6 +776,11 @@ categorías de elegibilidad de `C-02`, con una diferencia importante:
 > `PENDING_DEPENDENCY`** hasta que *todos* sus padres tengan `server_id`. La UI lo dice al seleccionar, no
 > al guardar: "2 de las 5 entregas elegidas todavía no se enviaron; el lote se enviará cuando se
 > sincronicen".
+>
+> **Corrección (`DATA-014`, Fase 8D/8E): "se enviará cuando se sincronicen" no siempre pasa.** Si alguno de
+> esos padres se capturó en **este mismo dispositivo**, el lote de sync no devuelve su `server_id`
+> (`confirmados[]` solo trae `uuidCliente`) -- sincronizar la entrega no alcanza, el lote queda en
+> `PENDING_DEPENDENCY` de forma indefinida con un `sync_error` explícito, igual que en `C-02`/`C-03`.
 
 Muestra el total de litros de lo seleccionado como ayuda para llenar `litrosUsados`, pero **no lo
 autocompleta**: son cosas distintas (se puede usar parte de una entrega).

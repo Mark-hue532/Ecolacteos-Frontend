@@ -16,9 +16,13 @@ import com.ecolacteos.acopio.ui.screens.acopio.EscanearQrScreen
 import com.ecolacteos.acopio.ui.screens.acopio.HistorialProveedorScreen
 import com.ecolacteos.acopio.ui.screens.acopio.RegistrarAcopioScreen
 import com.ecolacteos.acopio.ui.screens.acopio.RutaDelDiaScreen
+import com.ecolacteos.acopio.ui.screens.calidad.AlertasAnomaliaScreen
+import com.ecolacteos.acopio.ui.screens.calidad.BuscarAnalisisPorFolioScreen
 import com.ecolacteos.acopio.ui.screens.calidad.DetalleAnalisisScreen
 import com.ecolacteos.acopio.ui.screens.calidad.HomeCalidadScreen
 import com.ecolacteos.acopio.ui.screens.calidad.RegistrarAnalisisScreen
+import com.ecolacteos.acopio.ui.screens.calidad.RegistrarCorreccionScreen
+import com.ecolacteos.acopio.ui.screens.calidad.ScoreConfianzaScreen
 import com.ecolacteos.acopio.ui.screens.calidad.SeleccionarRegistroAnalisisScreen
 import com.ecolacteos.acopio.ui.screens.comun.AjustesScreen
 import com.ecolacteos.acopio.ui.screens.comun.ComunicadosScreen
@@ -31,6 +35,10 @@ import com.ecolacteos.acopio.ui.screens.produccion.DetalleLoteScreen
 import com.ecolacteos.acopio.ui.screens.produccion.HomeProduccionScreen
 import com.ecolacteos.acopio.ui.screens.produccion.RegistrarLoteScreen
 import com.ecolacteos.acopio.ui.screens.produccion.SeleccionarRegistrosLoteScreen
+import com.ecolacteos.acopio.ui.screens.recepcion.HistorialRecepcionesScreen
+import com.ecolacteos.acopio.ui.screens.recepcion.PagosProveedorScreen
+import com.ecolacteos.acopio.ui.screens.recepcion.RegistrarRecepcionScreen
+import com.ecolacteos.acopio.ui.screens.recepcion.ResultadoConciliacionScreen
 import com.ecolacteos.acopio.ui.screens.ventas.DetalleVentaScreen
 import com.ecolacteos.acopio.ui.screens.ventas.HomeVentasScreen
 import com.ecolacteos.acopio.ui.screens.ventas.RegistrarVentaScreen
@@ -78,6 +86,8 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
                 onNavegarAEscanearQrAcopio = { navController.navigate(Rutas.ACOPIO_ESCANEAR) },
                 onNavegarAHomeCalidad = { navController.navigate(Rutas.CALIDAD_HOME) },
                 onNavegarAHomeProduccion = { navController.navigate(Rutas.PRODUCCION_HOME) },
+                onNavegarARecepcionRegistrar = { navController.navigate(Rutas.RECEPCION_REGISTRAR) },
+                onNavegarARecepcionHistorial = { navController.navigate(Rutas.RECEPCION_HISTORIAL) },
                 onNavegarAPendientes = { navController.navigate(Rutas.PENDIENTES) },
                 onNavegarAComunicados = { navController.navigate(Rutas.COMUNICADOS) },
                 onNavegarAAjustes = { navController.navigate(Rutas.AJUSTES) },
@@ -182,7 +192,10 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
             arguments = listOf(navArgument(Rutas.ARG_REGISTRO_ID) { type = NavType.StringType }),
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
-            DetalleRegistroAcopioScreen(id = id)
+            DetalleRegistroAcopioScreen(
+                id = id,
+                onNavegarARegistrarCorreccion = { registroAcopioId -> navController.navigate(Rutas.calidadRegistrarCorreccion(registroAcopioId)) },
+            )
         }
 
         // Fase 8B -- A-07, la cuarta pantalla de ACOPIADOR (MOBILE_SCREENS.md §5).
@@ -200,6 +213,9 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
                 onNavegarADetalleAnalisis = { id -> navController.navigate(Rutas.calidadDetalleAnalisis(id)) },
                 onNavegarASeleccionarRegistro = { proveedorId -> navController.navigate(Rutas.calidadSeleccionarRegistro(proveedorId)) },
                 onNavegarABuscarProveedor = { navController.navigate(Rutas.CALIDAD_BUSCAR_PROVEEDOR) },
+                onNavegarABuscarPorFolio = { navController.navigate(Rutas.CALIDAD_BUSCAR_POR_FOLIO) },
+                onNavegarAAlertasAnomalia = { navController.navigate(Rutas.CALIDAD_ALERTAS_ANOMALIA) },
+                onNavegarABuscarProveedorParaScore = { navController.navigate(Rutas.CALIDAD_BUSCAR_PROVEEDOR_SCORE) },
             )
         }
         // Mismo `BuscarProveedorScreen`/`BuscarProveedorViewModel` de `A-03` (`§0` del prompt: la máquina de
@@ -241,7 +257,38 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
             arguments = listOf(navArgument(Rutas.ARG_REGISTRO_ID) { type = NavType.StringType }),
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
-            DetalleAnalisisScreen(registroAcopioId = id)
+            DetalleAnalisisScreen(
+                registroAcopioId = id,
+                onNavegarARegistrarCorreccion = { registroAcopioId -> navController.navigate(Rutas.calidadRegistrarCorreccion(registroAcopioId)) },
+            )
+        }
+
+        // Fase 8E -- CALIDAD (MOBILE_SCREENS.md §6): C-05, C-06, C-07, C-08.
+        composable(Rutas.CALIDAD_BUSCAR_POR_FOLIO) {
+            BuscarAnalisisPorFolioScreen()
+        }
+        composable(
+            route = Rutas.CALIDAD_REGISTRAR_CORRECCION,
+            arguments = listOf(navArgument(Rutas.ARG_REGISTRO_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val registroAcopioId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
+            RegistrarCorreccionScreen(registroAcopioId = registroAcopioId, onGuardadoConExito = { navController.popBackStack() })
+        }
+        composable(Rutas.CALIDAD_ALERTAS_ANOMALIA) {
+            AlertasAnomaliaScreen()
+        }
+        // Mismo `BuscarProveedorScreen` -- lleva a `C-08` en vez de a un formulario de captura.
+        composable(Rutas.CALIDAD_BUSCAR_PROVEEDOR_SCORE) {
+            BuscarProveedorScreen(
+                onNavegarARegistrar = { proveedorId -> navController.navigate(Rutas.calidadScoreConfianza(proveedorId)) },
+            )
+        }
+        composable(
+            route = Rutas.CALIDAD_SCORE_CONFIANZA,
+            arguments = listOf(navArgument(Rutas.ARG_PROVEEDOR_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val proveedorId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_PROVEEDOR_ID) }.orEmpty()
+            ScoreConfianzaScreen(proveedorId = proveedorId)
         }
 
         // Fase 8D -- PRODUCCION (MOBILE_SCREENS.md §7): P-01..P-04.
@@ -295,6 +342,44 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
             DetalleLoteScreen(id = id)
+        }
+
+        // Fase 8E -- RECEPCION (MOBILE_SCREENS.md §9): R-01..R-04. Cierra el inventario de 33 pantallas.
+        composable(Rutas.RECEPCION_REGISTRAR) {
+            RegistrarRecepcionScreen(
+                // A diferencia de A-04/C-03/P-03/V-02 (guardar = volver atrás), R-01 avanza a `R-02` para
+                // mostrar el resultado (`§9`) -- el formulario ya usado sale del stack (`inclusive = true`)
+                // para que "atrás" desde R-02 no vuelva a un formulario obsoleto.
+                onGuardadoConExito = { id ->
+                    navController.navigate(Rutas.recepcionResultado(id)) { popUpTo(Rutas.RECEPCION_REGISTRAR) { inclusive = true } }
+                },
+            )
+        }
+        composable(
+            route = Rutas.RECEPCION_RESULTADO,
+            arguments = listOf(navArgument(Rutas.ARG_REGISTRO_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
+            ResultadoConciliacionScreen(id = id)
+        }
+        composable(Rutas.RECEPCION_HISTORIAL) {
+            HistorialRecepcionesScreen(
+                onNavegarADetalle = { id -> navController.navigate(Rutas.recepcionResultado(id)) },
+                onNavegarABuscarProveedor = { navController.navigate(Rutas.RECEPCION_BUSCAR_PROVEEDOR) },
+            )
+        }
+        // Mismo `BuscarProveedorScreen` -- lleva a `R-04` en vez de a un formulario de captura.
+        composable(Rutas.RECEPCION_BUSCAR_PROVEEDOR) {
+            BuscarProveedorScreen(
+                onNavegarARegistrar = { proveedorId -> navController.navigate(Rutas.recepcionPagos(proveedorId)) },
+            )
+        }
+        composable(
+            route = Rutas.RECEPCION_PAGOS,
+            arguments = listOf(navArgument(Rutas.ARG_PROVEEDOR_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val proveedorId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_PROVEEDOR_ID) }.orEmpty()
+            PagosProveedorScreen(proveedorId = proveedorId)
         }
     }
 }

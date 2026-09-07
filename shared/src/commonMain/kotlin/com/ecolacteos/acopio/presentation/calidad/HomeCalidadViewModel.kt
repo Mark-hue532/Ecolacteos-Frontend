@@ -48,12 +48,22 @@ sealed interface HomeCalidadEvent {
     data class EntregaSinAnalizarPresionada(val proveedorId: String) : HomeCalidadEvent
 
     data object AnalizarNuevaEntregaPresionado : HomeCalidadEvent
+
+    // Fase 8E (MOBILE_SCREENS.md §6) -- accesos secundarios a C-05, C-07 y C-08.
+    data object BuscarPorFolioPresionado : HomeCalidadEvent
+    data object AlertasAnomaliaPresionado : HomeCalidadEvent
+    data object ScoreConfianzaPresionado : HomeCalidadEvent
 }
 
 sealed interface HomeCalidadEffect {
     data class NavegarADetalleAnalisis(val registroAcopioId: String) : HomeCalidadEffect
     data class NavegarASeleccionarRegistro(val proveedorId: String) : HomeCalidadEffect
     data object NavegarABuscarProveedor : HomeCalidadEffect
+
+    // Fase 8E.
+    data object NavegarABuscarPorFolio : HomeCalidadEffect
+    data object NavegarAAlertasAnomalia : HomeCalidadEffect
+    data object NavegarABuscarProveedorParaScore : HomeCalidadEffect
 }
 
 /**
@@ -93,6 +103,9 @@ class HomeCalidadViewModel(
             is HomeCalidadEvent.EntregaSinAnalizarPresionada ->
                 emitir(HomeCalidadEffect.NavegarASeleccionarRegistro(evento.proveedorId))
             HomeCalidadEvent.AnalizarNuevaEntregaPresionado -> emitir(HomeCalidadEffect.NavegarABuscarProveedor)
+            HomeCalidadEvent.BuscarPorFolioPresionado -> emitir(HomeCalidadEffect.NavegarABuscarPorFolio)
+            HomeCalidadEvent.AlertasAnomaliaPresionado -> emitir(HomeCalidadEffect.NavegarAAlertasAnomalia)
+            HomeCalidadEvent.ScoreConfianzaPresionado -> emitir(HomeCalidadEffect.NavegarABuscarProveedorParaScore)
         }
     }
 

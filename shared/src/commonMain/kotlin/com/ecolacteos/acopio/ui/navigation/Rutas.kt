@@ -91,6 +91,23 @@ object Rutas {
     const val CALIDAD_DETALLE_ANALISIS = "$CALIDAD_DETALLE_ANALISIS_BASE/{$ARG_REGISTRO_ID}"
     fun calidadDetalleAnalisis(registroAcopioId: String) = "$CALIDAD_DETALLE_ANALISIS_BASE/$registroAcopioId"
 
+    // Fase 8E -- CALIDAD (MOBILE_SCREENS.md §6): C-05, C-06, C-07, C-08.
+    const val CALIDAD_BUSCAR_POR_FOLIO = "calidad_buscar_por_folio"
+
+    private const val CALIDAD_REGISTRAR_CORRECCION_BASE = "calidad_registrar_correccion"
+    const val CALIDAD_REGISTRAR_CORRECCION = "$CALIDAD_REGISTRAR_CORRECCION_BASE/{$ARG_REGISTRO_ID}"
+    fun calidadRegistrarCorreccion(registroAcopioId: String) = "$CALIDAD_REGISTRAR_CORRECCION_BASE/$registroAcopioId"
+
+    const val CALIDAD_ALERTAS_ANOMALIA = "calidad_alertas_anomalia"
+
+    // `C-08` necesita un proveedor de partida, mismo criterio que `C-02` -- reusa `BuscarProveedorScreen`
+    // con un destino propio (esta búsqueda nunca navega a `CALIDAD_SELECCIONAR_REGISTRO`).
+    const val CALIDAD_BUSCAR_PROVEEDOR_SCORE = "calidad_buscar_proveedor_score"
+
+    private const val CALIDAD_SCORE_CONFIANZA_BASE = "calidad_score_confianza"
+    const val CALIDAD_SCORE_CONFIANZA = "$CALIDAD_SCORE_CONFIANZA_BASE/{$ARG_PROVEEDOR_ID}"
+    fun calidadScoreConfianza(proveedorId: String) = "$CALIDAD_SCORE_CONFIANZA_BASE/$proveedorId"
+
     // Fase 8D -- PRODUCCION (MOBILE_SCREENS.md §7): P-01..P-04.
     const val PRODUCCION_HOME = "produccion_home"
 
@@ -124,4 +141,21 @@ object Rutas {
     private const val PRODUCCION_DETALLE_LOTE_BASE = "produccion_detalle_lote"
     const val PRODUCCION_DETALLE_LOTE = "$PRODUCCION_DETALLE_LOTE_BASE/{$ARG_REGISTRO_ID}"
     fun produccionDetalleLote(id: String) = "$PRODUCCION_DETALLE_LOTE_BASE/$id"
+
+    // Fase 8E -- RECEPCION (MOBILE_SCREENS.md §9): R-01..R-04. `R-01` es el de-facto Home del rol (no hay
+    // pantalla propia de "home RECEPCION" en el inventario de 33).
+    const val RECEPCION_REGISTRAR = "recepcion_registrar"
+
+    private const val RECEPCION_RESULTADO_BASE = "recepcion_resultado"
+    const val RECEPCION_RESULTADO = "$RECEPCION_RESULTADO_BASE/{$ARG_REGISTRO_ID}"
+    fun recepcionResultado(id: String) = "$RECEPCION_RESULTADO_BASE/$id"
+
+    const val RECEPCION_HISTORIAL = "recepcion_historial"
+
+    // `R-04` necesita un proveedor de partida, mismo criterio que `C-02`/`C-08` -- reusa `BuscarProveedorScreen`.
+    const val RECEPCION_BUSCAR_PROVEEDOR = "recepcion_buscar_proveedor"
+
+    private const val RECEPCION_PAGOS_BASE = "recepcion_pagos"
+    const val RECEPCION_PAGOS = "$RECEPCION_PAGOS_BASE/{$ARG_PROVEEDOR_ID}"
+    fun recepcionPagos(proveedorId: String) = "$RECEPCION_PAGOS_BASE/$proveedorId"
 }

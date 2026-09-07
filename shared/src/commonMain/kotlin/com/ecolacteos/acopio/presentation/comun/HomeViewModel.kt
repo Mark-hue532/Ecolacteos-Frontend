@@ -74,6 +74,11 @@ sealed interface HomeEffect {
     // Fase 8D -- PRODUCCION (MOBILE_SCREENS.md §7).
     data object NavegarAHomeProduccion : HomeEffect
 
+    // Fase 8E -- RECEPCION (MOBILE_SCREENS.md §9). Sin Home propia -- R-01 es la acción principal del rol,
+    // R-03 su acceso secundario (ver checkpoint de 8E).
+    data object NavegarARecepcionRegistrar : HomeEffect
+    data object NavegarARecepcionHistorial : HomeEffect
+
     // Fase 8B (PROMPT_FASE_08B.md §4).
     /** Ruta directa a `S-05` vía [IndicadorSync][com.ecolacteos.acopio.ui.components.IndicadorSync] (`§2.1` regla 4). */
     data object NavegarAPendientes : HomeEffect
@@ -128,6 +133,7 @@ class HomeViewModel(
                     Rol.ACOPIADOR -> HomeEffect.NavegarARutaAcopio
                     Rol.CALIDAD -> HomeEffect.NavegarAHomeCalidad
                     Rol.PRODUCCION -> HomeEffect.NavegarAHomeProduccion
+                    Rol.RECEPCION -> HomeEffect.NavegarARecepcionRegistrar
                     else -> null
                 },
             )
@@ -135,6 +141,7 @@ class HomeViewModel(
                 when (_uiState.value.rol) {
                     Rol.VENTAS -> HomeEffect.NavegarAHomeVentas
                     Rol.ACOPIADOR -> HomeEffect.NavegarAEscanearQrAcopio
+                    Rol.RECEPCION -> HomeEffect.NavegarARecepcionHistorial
                     else -> null
                 },
             )
@@ -167,14 +174,17 @@ class HomeViewModel(
                 Rol.ACOPIADOR -> "Ver mi ruta"
                 Rol.CALIDAD -> "Analizar entregas"
                 Rol.PRODUCCION -> "Registrar lote"
+                Rol.RECEPCION -> "Registrar recepción"
                 else -> ""
             },
             etiquetaAccesoSecundario = when (rol) {
                 Rol.VENTAS -> "Ver ventas del día"
                 Rol.ACOPIADOR -> "Escanear QR"
+                Rol.RECEPCION -> "Ver historial de recepciones"
                 else -> null
             },
-            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR || rol == Rol.CALIDAD || rol == Rol.PRODUCCION,
+            accionPrincipalDisponible = rol == Rol.VENTAS || rol == Rol.ACOPIADOR || rol == Rol.CALIDAD ||
+                rol == Rol.PRODUCCION || rol == Rol.RECEPCION,
         )
     }
 }

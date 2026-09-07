@@ -4,8 +4,11 @@ import com.ecolacteos.acopio.core.ApiResult
 import com.ecolacteos.acopio.core.Decimal
 import com.ecolacteos.acopio.core.ahoraComoFechaHora
 import com.ecolacteos.acopio.core.generarUuidV4
+import com.ecolacteos.acopio.core.ApiError
 import com.ecolacteos.acopio.data.local.datasource.AnalisisCalidadLocalDataSource
 import com.ecolacteos.acopio.data.remote.dto.AnalisisCalidadResponse
+import com.ecolacteos.acopio.domain.ErrorDominio
+import com.ecolacteos.acopio.domain.aErrorDominio
 import com.ecolacteos.acopio.domain.GestorSesion
 import com.ecolacteos.acopio.domain.model.AnalisisCalidad
 import com.ecolacteos.acopio.domain.model.AnalisisCalidadDetalle
@@ -33,6 +36,16 @@ data class NuevoAnalisisCalidad(
     val aguaAnadida: Boolean,
 )
 
+/**
+ * Resultado de `buscarPorFolio()` (`C-05`, `MOBILE_SCREENS.md §6`): un `404` es "no encontramos ese
+ * folio" -- estado vacío, no error (mismo criterio que `ResultadoScoreConfianza` para `C-08`).
+ */
+sealed interface ResultadoBuscarAnalisisPorFolio {
+    data class Encontrado(val detalle: AnalisisCalidadDetalle) : ResultadoBuscarAnalisisPorFolio
+    data object NoEncontrado : ResultadoBuscarAnalisisPorFolio
+    data class Error(val error: ErrorDominio) : ResultadoBuscarAnalisisPorFolio
+}
+
 /** `AnalisisCalidad` (`PROMPT_FASE_06.md §4.2`) -- con dependencia de un `RegistroAcopio` padre. */
 interface AnalisisCalidadRepository {
     /** Ver [ResultadoCrearHijo] -- único caso que puede rechazar la creación es un padre ajeno no resoluble sin red. */
@@ -51,6 +64,9 @@ interface AnalisisCalidadRepository {
 
     /** `S-05` (Fase 8B): descarta una fila no sincronizada de la sesión activa. Ver `CLAUDE.md §3.6`. */
     suspend fun descartar(uuidCliente: String)
+
+    /** `C-05` (Fase 8E, ONLINE-ONLY): `GET /api/analisis-calidad/folio/{folio}`. El path param no es un UUID. */
+    suspend fun buscarPorFolio(folio: String): ResultadoBuscarAnalisisPorFolio
 }
 
 internal class AnalisisCalidadRepositoryImpl(
@@ -126,6 +142,19 @@ internal class AnalisisCalidadRepositoryImpl(
         val usuarioId = gestorSesion.sesionActual()?.usuarioId ?: return
         local.descartarNoSincronizado(uuidCliente, usuarioId)
     }
+
+    override suspend fun buscarPorFolio(folio: String): ResultadoBuscarAnalisisPorFolio =
+        when (val respuesta = apiClient.get<AnalisisCalidadResponse>(Endpoints.analisisCalidadPorFolio(folio))) {
+            is ApiResult.Exito -> ResultadoBuscarAnalisisPorFolio.Encontrado(respuesta.datos.aDetalle())
+            is ApiResult.Error -> {
+                val error = respuesta.error
+                if (error is ApiError.NoEncontrado) {
+                    ResultadoBuscarAnalisisPorFolio.NoEncontrado
+                } else {
+                    ResultadoBuscarAnalisisPorFolio.Error(error.aErrorDominio())
+                }
+            }
+        }
 
     override suspend fun obtenerDetallePorRegistro(registroAcopioId: String): AnalisisCalidadDetalle? =
         when (val respuesta = apiClient.get<AnalisisCalidadResponse>(Endpoints.analisisCalidadPorRegistro(registroAcopioId))) {
