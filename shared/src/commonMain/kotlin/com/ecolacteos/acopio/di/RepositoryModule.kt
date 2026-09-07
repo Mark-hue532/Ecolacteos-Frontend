@@ -10,8 +10,14 @@ import com.ecolacteos.acopio.data.repository.ComunicadoConfirmacionRepository
 import com.ecolacteos.acopio.data.repository.ComunicadoConfirmacionRepositoryImpl
 import com.ecolacteos.acopio.data.repository.CorreccionRegistroRepository
 import com.ecolacteos.acopio.data.repository.CorreccionRegistroRepositoryImpl
+import com.ecolacteos.acopio.data.repository.InnovacionRepository
+import com.ecolacteos.acopio.data.repository.InnovacionRepositoryImpl
 import com.ecolacteos.acopio.data.repository.LoteProduccionRepository
 import com.ecolacteos.acopio.data.repository.LoteProduccionRepositoryImpl
+import com.ecolacteos.acopio.data.repository.PagoRepository
+import com.ecolacteos.acopio.data.repository.PagoRepositoryImpl
+import com.ecolacteos.acopio.data.repository.RecepcionPlantaRepository
+import com.ecolacteos.acopio.data.repository.RecepcionPlantaRepositoryImpl
 import com.ecolacteos.acopio.data.repository.RegistroAcopioRepository
 import com.ecolacteos.acopio.data.repository.RegistroAcopioRepositoryImpl
 import com.ecolacteos.acopio.data.repository.ResolutorPadreRegistroAcopio
@@ -43,4 +49,10 @@ val repositoryModule = module {
     single<BorradorFormularioRepository> { BorradorFormularioRepositoryImpl(local = get()) }
     single<CorreccionRegistroRepository> { CorreccionRegistroRepositoryImpl(apiClient = get()) }
     single<ComunicadoConfirmacionRepository> { ComunicadoConfirmacionRepositoryImpl(apiClient = get()) }
+
+    // Fase 8E (PROMPT_FASE_08E.md §4): los 3 Repository que faltaban desde la Fase 6 -- RECEPCION y las
+    // lecturas de CALIDAD. Mismo patrón que CorreccionRegistroRepository: ONLINE-ONLY, sin tabla local.
+    single<RecepcionPlantaRepository> { RecepcionPlantaRepositoryImpl(apiClient = get()) }
+    single<PagoRepository> { PagoRepositoryImpl(apiClient = get()) }
+    single<InnovacionRepository> { InnovacionRepositoryImpl(apiClient = get()) }
 }

@@ -46,8 +46,8 @@ sealed interface DetalleAnalisisEvent {
 }
 
 sealed interface DetalleAnalisisEffect {
-    /** `C-06` es de la Fase 8E -- el punto de entrada existe, el destino todavía no (mismo criterio que `A-06`). */
-    data object CorreccionNoDisponibleTodavia : DetalleAnalisisEffect
+    /** `C-06` (Fase 8E) -- el punto de entrada previsto desde `8C` ya tiene destino. */
+    data class NavegarARegistrarCorreccion(val registroAcopioId: String) : DetalleAnalisisEffect
 }
 
 /** `C-04 · Detalle de análisis` (Fase 8C, `MOBILE_SCREENS.md §6`, ONLINE+CACHE). `registroAcopioId` viene de `C-01`. */
@@ -70,7 +70,7 @@ class DetalleAnalisisCalidadViewModel(
         when (evento) {
             DetalleAnalisisEvent.ReintentarPresionado -> cargar()
             DetalleAnalisisEvent.RegistrarCorreccionPresionado ->
-                viewModelScope.launch { _effect.send(DetalleAnalisisEffect.CorreccionNoDisponibleTodavia) }
+                viewModelScope.launch { _effect.send(DetalleAnalisisEffect.NavegarARegistrarCorreccion(registroAcopioId)) }
         }
     }
 

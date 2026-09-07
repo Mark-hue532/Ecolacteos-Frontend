@@ -41,8 +41,8 @@ sealed interface DetalleRegistroAcopioEvent {
 }
 
 sealed interface DetalleRegistroAcopioEffect {
-    /** `C-06` es de la Fase 8E -- el punto de entrada existe, el destino todavía no (`PROMPT_FASE_08A.md §2`). */
-    data object CorreccionNoDisponibleTodavia : DetalleRegistroAcopioEffect
+    /** `C-06` (Fase 8E) -- el punto de entrada previsto desde `8A` ya tiene destino. */
+    data class NavegarARegistrarCorreccion(val registroAcopioId: String) : DetalleRegistroAcopioEffect
 }
 
 /**
@@ -70,7 +70,7 @@ class DetalleRegistroAcopioViewModel(
         when (evento) {
             DetalleRegistroAcopioEvent.ReintentarPresionado -> cargar()
             DetalleRegistroAcopioEvent.RegistrarCorreccionPresionado ->
-                viewModelScope.launch { _effect.send(DetalleRegistroAcopioEffect.CorreccionNoDisponibleTodavia) }
+                viewModelScope.launch { _effect.send(DetalleRegistroAcopioEffect.NavegarARegistrarCorreccion(id)) }
         }
     }
 

@@ -87,8 +87,9 @@ class DetalleRegistroAcopioViewModelTest {
         assertFalse(viewModelAcopiador.uiState.esperarCargaCompleta().puedeRegistrarCorreccion)
     }
 
+    // C-06 existe desde la Fase 8E -- el punto de entrada navega con el id (server_id) del propio registro.
     @Test
-    fun `el punto de entrada de correccion existe pero el destino no esta implementado todavia`() = runTest {
+    fun `registrar correccion navega a C-06 con el id del registro`() = runTest {
         val fixture = FixtureRepositorios {
             responderJson(
                 """{"id":"srv-1","uuidCliente":"uuid-x","proveedorId":"prov-1","proveedorNombre":"Granja",
@@ -102,7 +103,7 @@ class DetalleRegistroAcopioViewModelTest {
 
         viewModel.effect.test {
             viewModel.onEvent(DetalleRegistroAcopioEvent.RegistrarCorreccionPresionado)
-            assertEquals(DetalleRegistroAcopioEffect.CorreccionNoDisponibleTodavia, awaitItem())
+            assertEquals(DetalleRegistroAcopioEffect.NavegarARegistrarCorreccion("srv-1"), awaitItem())
         }
     }
 

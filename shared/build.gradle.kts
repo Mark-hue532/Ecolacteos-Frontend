@@ -143,6 +143,38 @@ tasks.withType<AbstractTestTask>().configureEach {
     }
 }
 
+// PROMPT_FASE_08E.md §1.2 -- una coma dentro de un nombre de test entre backticks rompe
+// compileTestKotlinIosArm64/IosSimulatorArm64 con "Name contains illegal characters: ','". Pasó 4 veces
+// (Fases 2, 6, 8C, 8D), siempre descubierto después de una compilación de iOS que tarda minutos. Este check
+// corre en segundos, ANTES de esa compilación (ver el `dependsOn` más abajo), y falla con el archivo y el
+// nombre exactos en vez de dejar que Kotlin/Native lo reporte tarde y sin contexto.
+val verificarNombresDeTestSinComa by tasks.registering {
+    group = "verification"
+    description = "Falla si un nombre de test entre backticks en commonTest contiene una coma (§1.2)."
+    val directorioCommonTest = layout.projectDirectory.dir("src/commonTest/kotlin").asFile
+    inputs.dir(directorioCommonTest)
+    outputs.upToDateWhen { true } // no produce artefacto -- solo valida; re-ejecuta si cambian los inputs.
+    doLast {
+        val patronNombreDeTest = Regex("""fun\s+`([^`]*)`""")
+        val ofensores = directorioCommonTest.walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .flatMap { archivo ->
+                patronNombreDeTest.findAll(archivo.readText())
+                    .map { it.groupValues[1] }
+                    .filter { nombre -> nombre.contains(',') }
+                    .map { nombre -> "${archivo.relativeTo(directorioCommonTest)}: `$nombre`" }
+            }
+            .toList()
+        check(ofensores.isEmpty()) {
+            "Nombres de test con coma entre backticks (rompen compileTestKotlinIosArm64 -- PROMPT_FASE_08E.md §1.2):\n" +
+                ofensores.joinToString("\n") { "  - $it" }
+        }
+    }
+}
+
+tasks.matching { it.name == "compileTestKotlinIosArm64" || it.name == "compileTestKotlinIosSimulatorArm64" }
+    .configureEach { dependsOn(verificarNombresDeTestSinComa) }
+
 android {
     namespace = "com.ecolacteos.acopio.shared"
     compileSdk = libs.versions.androidCompileSdk.get().toInt()
