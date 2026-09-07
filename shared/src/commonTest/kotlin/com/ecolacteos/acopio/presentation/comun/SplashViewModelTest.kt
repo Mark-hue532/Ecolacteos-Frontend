@@ -3,6 +3,7 @@ package com.ecolacteos.acopio.presentation.comun
 import app.cash.turbine.test
 import com.ecolacteos.acopio.domain.usecase.DecidirDestinoInicialUseCase
 import com.ecolacteos.acopio.domain.usecase.RefrescarSesionUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,14 +20,16 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalCoroutinesApi::class)
 class SplashViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     @Test
@@ -36,7 +39,7 @@ class SplashViewModelTest {
         // porque el fake no bloquea; lo que prueba de verdad es que la navegación no depende de su resultado
         // (`viewModelScope.launch` propio, sin `await`) y llega con la sesión ya vigente.
         val gestorSesion = GestorSesionFake(GestorSesionFake.SESION_DE_PRUEBA)
-        val viewModel = SplashViewModel(DecidirDestinoInicialUseCase(gestorSesion), RefrescarSesionUseCase(gestorSesion))
+        val viewModel = viewModels.registrar(SplashViewModel(DecidirDestinoInicialUseCase(gestorSesion), RefrescarSesionUseCase(gestorSesion)))
 
         viewModel.effect.test {
             assertEquals(SplashEffect.Navegar(DestinoSplash.HOME), awaitItem())
@@ -46,7 +49,7 @@ class SplashViewModelTest {
     @Test
     fun `sin sesion navega a Login`() = runTest {
         val gestorSesion = GestorSesionFake(sesionFija = null)
-        val viewModel = SplashViewModel(DecidirDestinoInicialUseCase(gestorSesion), RefrescarSesionUseCase(gestorSesion))
+        val viewModel = viewModels.registrar(SplashViewModel(DecidirDestinoInicialUseCase(gestorSesion), RefrescarSesionUseCase(gestorSesion)))
 
         viewModel.effect.test {
             assertEquals(SplashEffect.Navegar(DestinoSplash.LOGIN), awaitItem())

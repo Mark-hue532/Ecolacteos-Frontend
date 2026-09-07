@@ -8,6 +8,7 @@ import com.ecolacteos.acopio.domain.model.EstadoSincronizacion
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleVentaUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.responderJson
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpStatusCode
@@ -30,14 +31,16 @@ import kotlin.test.assertNull
 @OptIn(ExperimentalCoroutinesApi::class)
 class DetalleVentaViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     // 8: sincronizada -- muestra el total tal cual lo devolvio el servidor, no cantidad x precioUnitario local.
@@ -55,10 +58,12 @@ class DetalleVentaViewModelTest {
         )
         fixture.ventasLocal.marcarSincronizado(uuidCliente, "server-1", fixture.reloj.now().toLocalDateTime(TimeZone.UTC))
 
-        val viewModel = DetalleVentaViewModel(
-            uuidCliente = uuidCliente,
-            obtenerDetalleVentaUseCase = ObtenerDetalleVentaUseCase(fixture.ventaRepository),
-            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+        val viewModel = viewModels.registrar(
+            DetalleVentaViewModel(
+                uuidCliente = uuidCliente,
+                obtenerDetalleVentaUseCase = ObtenerDetalleVentaUseCase(fixture.ventaRepository),
+                observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+            ),
         )
 
         viewModel.uiState.test {
@@ -80,10 +85,12 @@ class DetalleVentaViewModelTest {
             NuevaVenta(LocalDate(2026, 9, 6), TipoClienteVenta.PROVEEDOR, "queso-1", 4, Decimal.parseString("9.00")),
         )
 
-        val viewModel = DetalleVentaViewModel(
-            uuidCliente = uuidCliente,
-            obtenerDetalleVentaUseCase = ObtenerDetalleVentaUseCase(fixture.ventaRepository),
-            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+        val viewModel = viewModels.registrar(
+            DetalleVentaViewModel(
+                uuidCliente = uuidCliente,
+                obtenerDetalleVentaUseCase = ObtenerDetalleVentaUseCase(fixture.ventaRepository),
+                observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+            ),
         )
 
         viewModel.uiState.test {

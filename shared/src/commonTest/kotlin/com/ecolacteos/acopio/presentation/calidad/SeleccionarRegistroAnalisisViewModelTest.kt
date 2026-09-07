@@ -11,6 +11,7 @@ import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerRegistrosDeProveedorUseCase
 import com.ecolacteos.acopio.network.Endpoints
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.cuerpoCambiosVacio
 import com.ecolacteos.acopio.synchronization.responderJson
@@ -35,21 +36,25 @@ private const val PROVEEDOR_ID = "prov-1"
 @OptIn(ExperimentalCoroutinesApi::class)
 class SeleccionarRegistroAnalisisViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios, proveedorId: String = PROVEEDOR_ID) = SeleccionarRegistroAnalisisViewModel(
-        proveedorId = proveedorId,
-        clasificarPadresRegistroAcopioUseCase = ClasificarPadresRegistroAcopioUseCase(fixture.registroAcopioRepository),
-        obtenerRegistrosDeProveedorUseCase = ObtenerRegistrosDeProveedorUseCase(fixture.registroAcopioRepository),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+    private fun crearViewModel(fixture: FixtureRepositorios, proveedorId: String = PROVEEDOR_ID) = viewModels.registrar(
+        SeleccionarRegistroAnalisisViewModel(
+            proveedorId = proveedorId,
+            clasificarPadresRegistroAcopioUseCase = ClasificarPadresRegistroAcopioUseCase(fixture.registroAcopioRepository),
+            obtenerRegistrosDeProveedorUseCase = ObtenerRegistrosDeProveedorUseCase(fixture.registroAcopioRepository),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+        ),
     )
 
     private fun referenciaAjena(id: String, proveedorId: String = PROVEEDOR_ID) = RegistroAcopioReferencia(

@@ -14,6 +14,7 @@ import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.cuerpoCambiosVacio
 import com.ecolacteos.acopio.synchronization.responderJson
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -34,31 +35,35 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class AjustesViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios) = AjustesViewModel(
-        gestorSesion = fixture.gestorSesion,
-        logoutUseCase = fixture.logout,
-        observarPendientesUseCase = ObservarPendientesUseCase(
-            fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
-        ),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-        observarResumenSyncUseCase = ObservarResumenSyncUseCase(
-            ObservarPendientesUseCase(
+    private fun crearViewModel(fixture: FixtureRepositorios) = viewModels.registrar(
+        AjustesViewModel(
+            gestorSesion = fixture.gestorSesion,
+            logoutUseCase = fixture.logout,
+            observarPendientesUseCase = ObservarPendientesUseCase(
                 fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
             ),
-            fixture.catalogoRepository,
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+            observarResumenSyncUseCase = ObservarResumenSyncUseCase(
+                ObservarPendientesUseCase(
+                    fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
+                ),
+                fixture.catalogoRepository,
+            ),
+            observarEstadoSyncUseCase = ObservarEstadoSyncUseCase(fixture.syncEngine),
+            sincronizarAhoraUseCase = SincronizarAhoraUseCase(fixture.syncEngine),
         ),
-        observarEstadoSyncUseCase = ObservarEstadoSyncUseCase(fixture.syncEngine),
-        sincronizarAhoraUseCase = SincronizarAhoraUseCase(fixture.syncEngine),
     )
 
     private fun registroPendiente(uuidCliente: String, usuarioId: String = GestorSesionFake.USUARIO_ID) = RegistroAcopio(

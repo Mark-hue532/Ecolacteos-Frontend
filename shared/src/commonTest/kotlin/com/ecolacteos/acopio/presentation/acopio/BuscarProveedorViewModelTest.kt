@@ -5,6 +5,7 @@ import com.ecolacteos.acopio.domain.model.Proveedor
 import com.ecolacteos.acopio.domain.usecase.BuscarProveedorPorNombreUseCase
 import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarCatalogosUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
@@ -24,19 +25,23 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class BuscarProveedorViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios) = BuscarProveedorViewModel(
-        buscarProveedorPorNombreUseCase = BuscarProveedorPorNombreUseCase(fixture.catalogoRepository),
-        observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+    private fun crearViewModel(fixture: FixtureRepositorios) = viewModels.registrar(
+        BuscarProveedorViewModel(
+            buscarProveedorPorNombreUseCase = BuscarProveedorPorNombreUseCase(fixture.catalogoRepository),
+            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+        ),
     )
 
     @Test

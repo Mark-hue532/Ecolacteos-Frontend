@@ -25,7 +25,9 @@ import com.ecolacteos.acopio.domain.usecase.ObservarPendientesUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarProveedoresVisitadosHoyUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarResumenSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarVentasDelDiaUseCase
+import com.ecolacteos.acopio.domain.usecase.ObservarLotesRecientesUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleAnalisisCalidadUseCase
+import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleLoteUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleRegistroAcopioUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerDetalleVentaUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerRegistrosDeProveedorUseCase
@@ -87,6 +89,12 @@ val useCaseModule = module {
     single { ClasificarPadresRegistroAcopioUseCase(get()) }
     single { ObservarEntregasConEstadoAnalisisUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get()) }
     single { ObtenerDetalleAnalisisCalidadUseCase(get()) }
+
+    // Fase 8D (PROMPT_FASE_08D.md §7): los 2 UseCase de PRODUCCION que necesitan DI (P-01, P-04).
+    // La retención agregada de P-02 (`evaluarRetencionAgregada`) es una función pura, sin estado ni
+    // dependencias -- se llama directo, no se registra acá.
+    single { ObservarLotesRecientesUseCase(loteProduccionRepository = get(), observarCatalogosUseCase = get()) }
+    single { ObtenerDetalleLoteUseCase(get()) }
 
     single {
         VerificarPendientesUseCase(registroAcopioRepository = get(), analisisCalidadRepository = get(), loteProduccionRepository = get(), ventaRepository = get())

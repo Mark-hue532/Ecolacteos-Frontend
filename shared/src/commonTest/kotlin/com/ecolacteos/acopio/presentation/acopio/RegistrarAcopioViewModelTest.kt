@@ -18,6 +18,7 @@ import com.ecolacteos.acopio.plataforma.GestorPermisosFake
 import com.ecolacteos.acopio.plataforma.Permiso
 import com.ecolacteos.acopio.plataforma.ProveedorUbicacionFake
 import com.ecolacteos.acopio.plataforma.ResultadoUbicacion
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import io.ktor.client.engine.mock.respondError
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.Dispatchers
@@ -50,14 +51,16 @@ private const val UNIDAD_ID = "unidad-1"
 @OptIn(ExperimentalCoroutinesApi::class)
 class RegistrarAcopioViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     private fun sembrarCatalogo(fixture: FixtureRepositorios) {
@@ -95,19 +98,21 @@ class RegistrarAcopioViewModelTest {
         ),
         proveedorId: String = PROVEEDOR_ID,
         uuidClienteAEditar: String? = null,
-    ) = RegistrarAcopioViewModel(
-        proveedorId = proveedorId,
-        crearRegistroAcopioUseCase = CrearRegistroAcopioUseCase(fixture.registroAcopioRepository),
-        actualizarRegistroAcopioUseCase = ActualizarRegistroAcopioUseCase(fixture.registroAcopioRepository),
-        registroAcopioRepository = fixture.registroAcopioRepository,
-        observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-        borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
-        gestorPermisos = permisos,
-        proveedorUbicacion = ubicacion,
-        uuidClienteAEditar = uuidClienteAEditar,
-        reloj = fixture.reloj,
-        zona = ZONA,
+    ) = viewModels.registrar(
+        RegistrarAcopioViewModel(
+            proveedorId = proveedorId,
+            crearRegistroAcopioUseCase = CrearRegistroAcopioUseCase(fixture.registroAcopioRepository),
+            actualizarRegistroAcopioUseCase = ActualizarRegistroAcopioUseCase(fixture.registroAcopioRepository),
+            registroAcopioRepository = fixture.registroAcopioRepository,
+            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+            borradorFormularioUseCase = BorradorFormularioUseCase(fixture.borradorFormularioRepository),
+            gestorPermisos = permisos,
+            proveedorUbicacion = ubicacion,
+            uuidClienteAEditar = uuidClienteAEditar,
+            reloj = fixture.reloj,
+            zona = ZONA,
+        ),
     )
 
     private fun llenarCampos(viewModel: RegistrarAcopioViewModel, litros: String = "120.50") {

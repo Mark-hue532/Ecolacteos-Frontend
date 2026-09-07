@@ -10,6 +10,7 @@ import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarProveedoresVisitadosHoyUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerRutaDelDiaUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerZonaAsignadaUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.responderJson
 import io.ktor.client.engine.mock.respondError
@@ -34,14 +35,16 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalCoroutinesApi::class)
 class RutaDelDiaViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
     private fun sembrarUnidadPropia(fixture: FixtureRepositorios, zonaId: String = "zona-1") {
@@ -60,11 +63,13 @@ class RutaDelDiaViewModelTest {
         )
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios) = RutaDelDiaViewModel(
-        obtenerRutaDelDiaUseCase = ObtenerRutaDelDiaUseCase(fixture.catalogoRepository),
-        obtenerZonaAsignadaUseCase = ObtenerZonaAsignadaUseCase(fixture.catalogoRepository, fixture.gestorSesion),
-        observarProveedoresVisitadosHoyUseCase = ObservarProveedoresVisitadosHoyUseCase(fixture.registroAcopioRepository, fixture.reloj, TimeZone.UTC),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+    private fun crearViewModel(fixture: FixtureRepositorios) = viewModels.registrar(
+        RutaDelDiaViewModel(
+            obtenerRutaDelDiaUseCase = ObtenerRutaDelDiaUseCase(fixture.catalogoRepository),
+            obtenerZonaAsignadaUseCase = ObtenerZonaAsignadaUseCase(fixture.catalogoRepository, fixture.gestorSesion),
+            observarProveedoresVisitadosHoyUseCase = ObservarProveedoresVisitadosHoyUseCase(fixture.registroAcopioRepository, fixture.reloj, TimeZone.UTC),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+        ),
     )
 
     // 10: horaEstimada nula se expone sin hora -- ningun "--:--", ningun "00:00".

@@ -10,6 +10,7 @@ import com.ecolacteos.acopio.domain.usecase.FixtureRepositorios
 import com.ecolacteos.acopio.domain.usecase.ObservarConectividadUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarHistorialProveedorUseCase
 import com.ecolacteos.acopio.domain.usecase.ObtenerRegistrosDeProveedorUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.responderJson
 import io.ktor.client.engine.mock.respondError
@@ -33,21 +34,25 @@ private const val PROVEEDOR_ID = "p1"
 @OptIn(ExperimentalCoroutinesApi::class)
 class HistorialProveedorViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios) = HistorialProveedorViewModel(
-        proveedorId = PROVEEDOR_ID,
-        observarHistorialProveedorUseCase = ObservarHistorialProveedorUseCase(fixture.registroAcopioRepository),
-        obtenerRegistrosDeProveedorUseCase = ObtenerRegistrosDeProveedorUseCase(fixture.registroAcopioRepository),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+    private fun crearViewModel(fixture: FixtureRepositorios) = viewModels.registrar(
+        HistorialProveedorViewModel(
+            proveedorId = PROVEEDOR_ID,
+            observarHistorialProveedorUseCase = ObservarHistorialProveedorUseCase(fixture.registroAcopioRepository),
+            obtenerRegistrosDeProveedorUseCase = ObtenerRegistrosDeProveedorUseCase(fixture.registroAcopioRepository),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+        ),
     )
 
     // 11: una entrega presente en local (con server_id) y en cache (mismo id) aparece una sola vez, y la

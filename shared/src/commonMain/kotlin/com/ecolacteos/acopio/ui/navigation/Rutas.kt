@@ -90,4 +90,38 @@ object Rutas {
     private const val CALIDAD_DETALLE_ANALISIS_BASE = "calidad_detalle_analisis"
     const val CALIDAD_DETALLE_ANALISIS = "$CALIDAD_DETALLE_ANALISIS_BASE/{$ARG_REGISTRO_ID}"
     fun calidadDetalleAnalisis(registroAcopioId: String) = "$CALIDAD_DETALLE_ANALISIS_BASE/$registroAcopioId"
+
+    // Fase 8D -- PRODUCCION (MOBILE_SCREENS.md §7): P-01..P-04.
+    const val PRODUCCION_HOME = "produccion_home"
+
+    // `P-02` necesita un proveedor de partida, mismo criterio que `C-02` (`8C`) -- reusa `BuscarProveedorScreen`.
+    const val PRODUCCION_BUSCAR_PROVEEDOR = "produccion_buscar_proveedor"
+
+    private const val PRODUCCION_SELECCIONAR_REGISTROS_BASE = "produccion_seleccionar_registros"
+    const val PRODUCCION_SELECCIONAR_REGISTROS = "$PRODUCCION_SELECCIONAR_REGISTROS_BASE/{$ARG_PROVEEDOR_ID}"
+    fun produccionSeleccionarRegistros(proveedorId: String) = "$PRODUCCION_SELECCIONAR_REGISTROS_BASE/$proveedorId"
+
+    // `P-03` -- selección múltiple de `P-02`, codificada como dos listas separadas por coma (los ids son
+    // UUIDs/slugs sin comas -- ver checkpoint). `totalLitrosSeleccionado` es solo de ayuda (`§4.3`, nunca
+    // autocompleta `litrosUsados`).
+    const val ARG_REGISTRO_ACOPIO_UUID_CLIENTES = "registroAcopioUuidClientes"
+    const val ARG_REGISTRO_ACOPIO_SERVER_IDS = "registroAcopioServerIds"
+    const val ARG_TOTAL_LITROS_SELECCIONADO = "totalLitrosSeleccionado"
+    private const val PRODUCCION_REGISTRAR_LOTE_BASE = "produccion_registrar_lote"
+    const val PRODUCCION_REGISTRAR_LOTE =
+        "$PRODUCCION_REGISTRAR_LOTE_BASE?$ARG_REGISTRO_ACOPIO_UUID_CLIENTES={$ARG_REGISTRO_ACOPIO_UUID_CLIENTES}" +
+            "&$ARG_REGISTRO_ACOPIO_SERVER_IDS={$ARG_REGISTRO_ACOPIO_SERVER_IDS}" +
+            "&$ARG_TOTAL_LITROS_SELECCIONADO={$ARG_TOTAL_LITROS_SELECCIONADO}"
+    fun produccionRegistrarLote(uuidClientes: List<String>, serverIds: List<String>, totalLitrosTexto: String): String {
+        val query = listOf(
+            "$ARG_REGISTRO_ACOPIO_UUID_CLIENTES=${uuidClientes.joinToString(",")}",
+            "$ARG_REGISTRO_ACOPIO_SERVER_IDS=${serverIds.joinToString(",")}",
+            "$ARG_TOTAL_LITROS_SELECCIONADO=$totalLitrosTexto",
+        ).joinToString("&")
+        return "$PRODUCCION_REGISTRAR_LOTE_BASE?$query"
+    }
+
+    private const val PRODUCCION_DETALLE_LOTE_BASE = "produccion_detalle_lote"
+    const val PRODUCCION_DETALLE_LOTE = "$PRODUCCION_DETALLE_LOTE_BASE/{$ARG_REGISTRO_ID}"
+    fun produccionDetalleLote(id: String) = "$PRODUCCION_DETALLE_LOTE_BASE/$id"
 }

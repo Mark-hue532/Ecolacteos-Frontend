@@ -16,6 +16,7 @@ import com.ecolacteos.acopio.domain.usecase.ObservarEstadoSyncUseCase
 import com.ecolacteos.acopio.domain.usecase.ObservarPendientesUseCase
 import com.ecolacteos.acopio.domain.usecase.ReintentarManualUseCase
 import com.ecolacteos.acopio.domain.usecase.SincronizarAhoraUseCase
+import com.ecolacteos.acopio.presentation.ContextoDeViewModelsDePrueba
 import com.ecolacteos.acopio.synchronization.GestorSesionFake
 import com.ecolacteos.acopio.synchronization.RecursoSync
 import com.ecolacteos.acopio.synchronization.cuerpoCambiosVacio
@@ -44,32 +45,36 @@ private val ZONA = TimeZone.UTC
 @OptIn(ExperimentalCoroutinesApi::class)
 class PendientesViewModelTest {
 
+    private val viewModels = ContextoDeViewModelsDePrueba()
+
     @BeforeTest
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModels.iniciar()
     }
 
     @AfterTest
     fun tearDown() {
-        Dispatchers.resetMain()
+        viewModels.finalizar()
     }
 
-    private fun crearViewModel(fixture: FixtureRepositorios) = PendientesViewModel(
-        observarPendientesUseCase = ObservarPendientesUseCase(
-            fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
+    private fun crearViewModel(fixture: FixtureRepositorios) = viewModels.registrar(
+        PendientesViewModel(
+            observarPendientesUseCase = ObservarPendientesUseCase(
+                fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
+            ),
+            observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
+            observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
+            observarEstadoSyncUseCase = ObservarEstadoSyncUseCase(fixture.syncEngine),
+            reintentarManualUseCase = ReintentarManualUseCase(
+                fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
+            ),
+            descartarPendienteUseCase = DescartarPendienteUseCase(
+                fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
+            ),
+            sincronizarAhoraUseCase = SincronizarAhoraUseCase(fixture.syncEngine),
+            reloj = fixture.reloj,
+            zona = ZONA,
         ),
-        observarCatalogosUseCase = ObservarCatalogosUseCase(fixture.catalogoRepository),
-        observarConectividadUseCase = ObservarConectividadUseCase(fixture.conectividad),
-        observarEstadoSyncUseCase = ObservarEstadoSyncUseCase(fixture.syncEngine),
-        reintentarManualUseCase = ReintentarManualUseCase(
-            fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
-        ),
-        descartarPendienteUseCase = DescartarPendienteUseCase(
-            fixture.registroAcopioRepository, fixture.analisisCalidadRepository, fixture.loteProduccionRepository, fixture.ventaRepository,
-        ),
-        sincronizarAhoraUseCase = SincronizarAhoraUseCase(fixture.syncEngine),
-        reloj = fixture.reloj,
-        zona = ZONA,
     )
 
     private fun registro(

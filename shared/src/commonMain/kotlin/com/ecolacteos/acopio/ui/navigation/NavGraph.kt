@@ -27,6 +27,10 @@ import com.ecolacteos.acopio.ui.screens.comun.HomeScreen
 import com.ecolacteos.acopio.ui.screens.comun.LoginScreen
 import com.ecolacteos.acopio.ui.screens.comun.PendientesScreen
 import com.ecolacteos.acopio.ui.screens.comun.SplashScreen
+import com.ecolacteos.acopio.ui.screens.produccion.DetalleLoteScreen
+import com.ecolacteos.acopio.ui.screens.produccion.HomeProduccionScreen
+import com.ecolacteos.acopio.ui.screens.produccion.RegistrarLoteScreen
+import com.ecolacteos.acopio.ui.screens.produccion.SeleccionarRegistrosLoteScreen
 import com.ecolacteos.acopio.ui.screens.ventas.DetalleVentaScreen
 import com.ecolacteos.acopio.ui.screens.ventas.HomeVentasScreen
 import com.ecolacteos.acopio.ui.screens.ventas.RegistrarVentaScreen
@@ -73,6 +77,7 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
                 onNavegarARutaAcopio = { navController.navigate(Rutas.ACOPIO_RUTA) },
                 onNavegarAEscanearQrAcopio = { navController.navigate(Rutas.ACOPIO_ESCANEAR) },
                 onNavegarAHomeCalidad = { navController.navigate(Rutas.CALIDAD_HOME) },
+                onNavegarAHomeProduccion = { navController.navigate(Rutas.PRODUCCION_HOME) },
                 onNavegarAPendientes = { navController.navigate(Rutas.PENDIENTES) },
                 onNavegarAComunicados = { navController.navigate(Rutas.COMUNICADOS) },
                 onNavegarAAjustes = { navController.navigate(Rutas.AJUSTES) },
@@ -237,6 +242,59 @@ fun AcopioNavHost(navController: NavHostController = rememberNavController()) {
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
             DetalleAnalisisScreen(registroAcopioId = id)
+        }
+
+        // Fase 8D -- PRODUCCION (MOBILE_SCREENS.md §7): P-01..P-04.
+        composable(Rutas.PRODUCCION_HOME) {
+            HomeProduccionScreen(
+                onNavegarADetalleLote = { id -> navController.navigate(Rutas.produccionDetalleLote(id)) },
+                onNavegarABuscarProveedor = { navController.navigate(Rutas.PRODUCCION_BUSCAR_PROVEEDOR) },
+            )
+        }
+        // Mismo `BuscarProveedorScreen`/`BuscarProveedorViewModel` de `A-03`/`C-01` -- solo cambia adónde navega.
+        composable(Rutas.PRODUCCION_BUSCAR_PROVEEDOR) {
+            BuscarProveedorScreen(
+                onNavegarARegistrar = { proveedorId -> navController.navigate(Rutas.produccionSeleccionarRegistros(proveedorId)) },
+            )
+        }
+        composable(
+            route = Rutas.PRODUCCION_SELECCIONAR_REGISTROS,
+            arguments = listOf(navArgument(Rutas.ARG_PROVEEDOR_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val proveedorId = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_PROVEEDOR_ID) }.orEmpty()
+            SeleccionarRegistrosLoteScreen(
+                proveedorId = proveedorId,
+                onNavegarACapturar = { uuidClientes, serverIds, totalLitrosTexto ->
+                    navController.navigate(Rutas.produccionRegistrarLote(uuidClientes, serverIds, totalLitrosTexto))
+                },
+            )
+        }
+        composable(
+            route = Rutas.PRODUCCION_REGISTRAR_LOTE,
+            arguments = listOf(
+                navArgument(Rutas.ARG_REGISTRO_ACOPIO_UUID_CLIENTES) { type = NavType.StringType; defaultValue = "" },
+                navArgument(Rutas.ARG_REGISTRO_ACOPIO_SERVER_IDS) { type = NavType.StringType; defaultValue = "" },
+                navArgument(Rutas.ARG_TOTAL_LITROS_SELECCIONADO) { type = NavType.StringType; defaultValue = "0.00" },
+            ),
+        ) { backStackEntry ->
+            val uuidClientes = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ACOPIO_UUID_CLIENTES) }
+                .orEmpty().split(",").filter { it.isNotBlank() }
+            val serverIds = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ACOPIO_SERVER_IDS) }
+                .orEmpty().split(",").filter { it.isNotBlank() }
+            val totalLitrosTexto = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_TOTAL_LITROS_SELECCIONADO) }.orEmpty()
+            RegistrarLoteScreen(
+                registroAcopioUuidClientes = uuidClientes,
+                registroAcopioServerIds = serverIds,
+                totalLitrosSeleccionadoTexto = totalLitrosTexto,
+                onGuardadoConExito = { navController.popBackStack() },
+            )
+        }
+        composable(
+            route = Rutas.PRODUCCION_DETALLE_LOTE,
+            arguments = listOf(navArgument(Rutas.ARG_REGISTRO_ID) { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.read { getStringOrNull(Rutas.ARG_REGISTRO_ID) }.orEmpty()
+            DetalleLoteScreen(id = id)
         }
     }
 }
